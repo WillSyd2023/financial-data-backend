@@ -1,2 +1,1 @@
-# stockFeed
-Real-Time Stock Feed Aggregator
+# Real-Time Stock Feed Aggregator
