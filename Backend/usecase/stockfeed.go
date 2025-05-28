@@ -5,7 +5,7 @@ import "Backend/repo"
 type UsecaseItf interface{}
 
 type Usecase struct {
-	rp repo.Repo
+	rp repo.RepoItf
 }
 
 func NewUsecase(rp repo.Repo) *Usecase {
