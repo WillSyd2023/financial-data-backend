@@ -8,7 +8,7 @@ type Usecase struct {
 	rp repo.RepoItf
 }
 
-func NewUsecase(rp repo.Repo) *Usecase {
+func NewUsecase(rp repo.RepoItf) *Usecase {
 	return &Usecase{
 		rp: rp,
 	}
