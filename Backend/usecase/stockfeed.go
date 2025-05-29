@@ -3,12 +3,10 @@ package usecase
 import (
 	"Backend/constant"
 	"Backend/dto"
-	"Backend/entity"
 	"Backend/repo"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 
@@ -16,7 +14,7 @@ import (
 )
 
 type UsecaseItf interface {
-	GetSymbols(*gin.Context, *dto.GetSymbolsReq) error
+	GetSymbols(*gin.Context, *dto.GetSymbolsReq) (*dto.SymbolsRes, error)
 }
 
 type Usecase struct {
@@ -29,7 +27,7 @@ func NewUsecase(rp repo.RepoItf) *Usecase {
 	}
 }
 
-func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) error {
+func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.SymbolsRes, error) {
 	// Retrieve data from Alpha Vantage API
 	url := fmt.Sprintf("https://www.alphavantage.co/"+
 		"query?function=SYMBOL_SEARCH"+
@@ -40,7 +38,7 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) error {
 
 	response, err := http.Get(url)
 	if err != nil {
-		return constant.NewCError(
+		return nil, constant.NewCError(
 			http.StatusBadGateway,
 			fmt.Sprintf(
 				"Alpha Vantage API GET error: %s",
@@ -52,7 +50,7 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) error {
 
 	body, readErr := io.ReadAll(response.Body)
 	if readErr != nil {
-		return constant.NewCError(
+		return nil, constant.NewCError(
 			http.StatusBadGateway,
 			fmt.Sprintf(
 				"Alpha Vantage API body-io.ReadAll-parse error: %s",
@@ -62,10 +60,10 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) error {
 	}
 
 	// Unmarshal body
-	var symbols entity.Symbols
+	var symbols dto.SymbolsRes
 	readErr = json.Unmarshal(body, &symbols)
 	if readErr != nil {
-		return constant.NewCError(
+		return nil, constant.NewCError(
 			http.StatusBadGateway,
 			fmt.Sprintf(
 				"Alpha Vantage API body-json.Unmarshal-parse error: %s",
@@ -74,7 +72,5 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) error {
 		)
 	}
 
-	log.Println(symbols)
-
-	return nil
+	return &symbols, nil
 }
