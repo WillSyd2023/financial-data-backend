@@ -11,7 +11,7 @@ import (
 
 type HandlerItf interface {
 	GetSymbols(*gin.Context)
-	CollectData(*gin.Context)
+	CollectSymbol(*gin.Context)
 }
 
 type Handler struct {
@@ -64,7 +64,7 @@ func (hd *Handler) GetSymbols(ctx *gin.Context) {
 		})
 }
 
-func (hd *Handler) CollectData(ctx *gin.Context) {
+func (hd *Handler) CollectSymbol(ctx *gin.Context) {
 	// request validation
 	symbol := ctx.Param("symbol")
 	if symbol == "" {
