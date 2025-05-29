@@ -14,7 +14,7 @@ import (
 )
 
 type UsecaseItf interface {
-	GetSymbols(*gin.Context, *dto.GetSymbolsReq) (*dto.SymbolsRes, error)
+	GetSymbols(*gin.Context, *dto.GetSymbolsReq) (*dto.AlphaSymbolsRes, error)
 }
 
 type Usecase struct {
@@ -27,7 +27,7 @@ func NewUsecase(rp repo.RepoItf) *Usecase {
 	}
 }
 
-func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.SymbolsRes, error) {
+func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.AlphaSymbolsRes, error) {
 	// Retrieve data from Alpha Vantage API
 	url := fmt.Sprintf("https://www.alphavantage.co/"+
 		"query?function=SYMBOL_SEARCH"+
@@ -60,7 +60,7 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Sy
 	}
 
 	// Unmarshal body
-	var symbols dto.SymbolsRes
+	var symbols dto.AlphaSymbolsRes
 	readErr = json.Unmarshal(body, &symbols)
 	if readErr != nil {
 		return nil, constant.NewCError(
