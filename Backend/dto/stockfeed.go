@@ -1,7 +1,8 @@
 package dto
 
+// GetSymbols
 type GetSymbolsReq struct {
-	Prefix string `json:"prefix" binding:"required,gte=1"`
+	Prefix string
 }
 
 type GetSymbolsSingle struct {
@@ -12,4 +13,9 @@ type GetSymbolsSingle struct {
 
 type GetSymbolsRes struct {
 	BestMatches []GetSymbolsSingle `json:"best_matches"`
+}
+
+// CollectSymbol
+type CollectSymbolReq struct {
+	Symbol string
 }
