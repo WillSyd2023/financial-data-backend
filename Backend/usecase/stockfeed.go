@@ -15,6 +15,7 @@ import (
 
 type UsecaseItf interface {
 	GetSymbols(*gin.Context, *dto.GetSymbolsReq) (*dto.AlphaSymbolsRes, error)
+	CollectSymbol(*gin.Context, *dto.CollectSymbolReq) error
 }
 
 type Usecase struct {
@@ -75,4 +76,9 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 	}
 
 	return &symbols, nil
+}
+
+func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) error {
+
+	return nil
 }
