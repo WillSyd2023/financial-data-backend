@@ -33,8 +33,11 @@ func main() {
 	uc := usecase.NewUsecase(rp, util.NewHttpClient())
 	hd := handler.NewHandler(uc)
 
-	// Get synbols
+	// Get symbols
 	r.GET("/symbols", hd.GetSymbols)
+
+	// Collect and return stock data
+	r.POST("/data/:symbol", hd.CollectIntraDay)
 
 	// Run server
 	srv := &http.Server{
