@@ -59,7 +59,7 @@ func TestMiddlewareError(t *testing.T) {
 		{
 			name: "custom error",
 			handle: func(c *gin.Context) {
-				c.Error(&constant.CustomError{
+				c.Error(constant.CustomError{
 					Message: "custom error message",
 				})
 			},

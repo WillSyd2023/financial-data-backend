@@ -53,7 +53,7 @@ func (m *Middleware) Error() gin.HandlerFunc {
 		}
 
 		// Custom error from `constant` repo
-		var ce *constant.CustomError
+		var ce constant.CustomError
 		if errors.As(err, &ce) {
 			c.AbortWithStatusJSON(http.StatusBadRequest, dto.Res{
 				Success: false,
