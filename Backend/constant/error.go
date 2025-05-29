@@ -1,11 +1,14 @@
 package constant
 
+import "net/http"
+
 type CustomError struct {
-	Message string
+	StatusCode int
+	Message    string
 }
 
-func NewCError(Message string) CustomError {
-	return CustomError{Message: Message}
+func NewCError(StatusCode int, Message string) CustomError {
+	return CustomError{StatusCode: StatusCode, Message: Message}
 }
 
 func (err CustomError) Error() string {
@@ -14,5 +17,5 @@ func (err CustomError) Error() string {
 
 var (
 	// GetSymbols handler
-	ErrNoKeywords = NewCError("please provide keywords")
+	ErrNoKeywords = NewCError(http.StatusBadRequest, "please provide keywords")
 )
