@@ -71,4 +71,9 @@ func (hd *Handler) CollectSymbol(ctx *gin.Context) {
 		ctx.Error(constant.ErrNoSymbol)
 		return
 	}
+	var req dto.CollectSymbolReq
+	req.Symbol = symbol
+
+	// usecase
+	hd.uc.CollectSymbol(ctx, &req)
 }
