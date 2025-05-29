@@ -3,7 +3,9 @@ package usecase
 import (
 	"Backend/constant"
 	"Backend/dto"
+	"Backend/entity"
 	"Backend/repo"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -53,12 +55,26 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) error {
 		return constant.NewCError(
 			http.StatusBadGateway,
 			fmt.Sprintf(
-				"Alpha Vantage API response-body-parse error: %s",
+				"Alpha Vantage API body-io.ReadAll-parse error: %s",
 				readErr.Error(),
 			),
 		)
 	}
-	log.Print(string(body))
+
+	// Unmarshal body
+	var symbols entity.Symbols
+	readErr = json.Unmarshal(body, &symbols)
+	if readErr != nil {
+		return constant.NewCError(
+			http.StatusBadGateway,
+			fmt.Sprintf(
+				"Alpha Vantage API body-json.Unmarshal-parse error: %s",
+				readErr.Error(),
+			),
+		)
+	}
+
+	log.Println(symbols)
 
 	return nil
 }
