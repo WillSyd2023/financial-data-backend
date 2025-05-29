@@ -4,9 +4,9 @@ import (
 	"Backend/constant"
 	"Backend/dto"
 	"Backend/repo"
+	"Backend/util"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 
@@ -19,11 +19,13 @@ type UsecaseItf interface {
 
 type Usecase struct {
 	rp repo.RepoItf
+	hc util.HttpClientItf
 }
 
-func NewUsecase(rp repo.RepoItf) *Usecase {
+func NewUsecase(rp repo.RepoItf, hc util.HttpClientItf) *Usecase {
 	return &Usecase{
 		rp: rp,
+		hc: hc,
 	}
 }
 
@@ -36,7 +38,7 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 		os.Getenv("ALPHA_VANTAGE_API_KEY"),
 	)
 
-	response, err := http.Get(url)
+	response, err := uc.hc.Get(url)
 	if err != nil {
 		return nil, constant.NewCError(
 			http.StatusBadGateway,
@@ -48,7 +50,7 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 	}
 	defer response.Body.Close()
 
-	body, readErr := io.ReadAll(response.Body)
+	body, readErr := uc.hc.ReadAll(response.Body)
 	if readErr != nil {
 		return nil, constant.NewCError(
 			http.StatusBadGateway,

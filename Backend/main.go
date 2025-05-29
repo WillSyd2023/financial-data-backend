@@ -6,6 +6,7 @@ import (
 	"Backend/middleware"
 	"Backend/repo"
 	"Backend/usecase"
+	"Backend/util"
 	"log"
 	"net/http"
 	"os"
@@ -29,7 +30,7 @@ func main() {
 
 	// Setup app (in layers)
 	rp := repo.NewRepo(db)
-	uc := usecase.NewUsecase(rp)
+	uc := usecase.NewUsecase(rp, util.NewHttpClient())
 	hd := handler.NewHandler(uc)
 
 	// Get synbols
