@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"Backend/dto"
 	"Backend/usecase"
 
 	"github.com/gin-gonic/gin"
@@ -22,5 +23,10 @@ func NewUsecase(uc usecase.UsecaseItf) *Handler {
 
 func (hd *Handler) GetSymbols(ctx *gin.Context) {
 	// request validation
-
+	var req dto.GetSymbolsReq
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
 }
