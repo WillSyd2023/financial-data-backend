@@ -37,7 +37,7 @@ func main() {
 	r.GET("/symbols", hd.GetSymbols)
 
 	// Collect and return stock data
-	r.POST("/data/:symbol", hd.CollectIntraDay)
+	r.POST("/data/:symbol", hd.CollectData)
 
 	// Run server
 	srv := &http.Server{
