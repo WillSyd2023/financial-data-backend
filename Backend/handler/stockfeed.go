@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"Backend/constant"
 	"Backend/dto"
 	"Backend/usecase"
 
@@ -23,12 +24,13 @@ func NewHandler(uc usecase.UsecaseItf) *Handler {
 
 func (hd *Handler) GetSymbols(ctx *gin.Context) {
 	// request validation
-	var req dto.GetSymbolsReq
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		ctx.Error(err)
+	keywords := ctx.Query("keywords")
+	if keywords == "" {
+		ctx.Error(constant.ErrNoKeywords)
 		return
 	}
+	var req dto.GetSymbolsReq
+	req.Prefix = keywords
 
 	// usecase
 	hd.uc.GetSymbols(ctx, &req)

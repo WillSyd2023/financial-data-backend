@@ -11,3 +11,8 @@ func NewCError(Message string) CustomError {
 func (err CustomError) Error() string {
 	return err.Message
 }
+
+var (
+	// GetSymbols handler
+	ErrNoKeywords = NewCError("please provide keywords")
+)
