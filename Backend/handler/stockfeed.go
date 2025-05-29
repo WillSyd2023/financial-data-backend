@@ -29,4 +29,7 @@ func (hd *Handler) GetSymbols(ctx *gin.Context) {
 		ctx.Error(err)
 		return
 	}
+
+	// usecase
+	hd.uc.GetSymbols(ctx, &req)
 }
