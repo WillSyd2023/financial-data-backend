@@ -18,4 +18,7 @@ func (err CustomError) Error() string {
 var (
 	// GetSymbols handler
 	ErrNoKeywords = NewCError(http.StatusBadRequest, "please provide keywords")
+
+	// CollectData handler
+	ErrNoSymbol = NewCError(http.StatusBadRequest, "please provide symbol")
 )
