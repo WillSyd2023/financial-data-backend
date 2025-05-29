@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"Backend/constant"
 	"Backend/dto"
 	"Backend/repo"
 	"fmt"
@@ -13,7 +14,7 @@ import (
 )
 
 type UsecaseItf interface {
-	GetSymbols(*gin.Context, *dto.GetSymbolsReq)
+	GetSymbols(*gin.Context, *dto.GetSymbolsReq) error
 }
 
 type Usecase struct {
@@ -26,7 +27,7 @@ func NewUsecase(rp repo.RepoItf) *Usecase {
 	}
 }
 
-func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) {
+func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) error {
 	// Retrieve data from Alpha Vantage API
 	url := fmt.Sprintf("https://www.alphavantage.co/"+
 		"query?function=SYMBOL_SEARCH"+
@@ -37,13 +38,27 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) {
 
 	response, err := http.Get(url)
 	if err != nil {
-		log.Fatal(err)
+		return constant.NewCError(
+			http.StatusBadGateway,
+			fmt.Sprintf(
+				"Alpha Vantage API GET error: %s",
+				err.Error(),
+			),
+		)
 	}
 	defer response.Body.Close()
 
 	body, readErr := io.ReadAll(response.Body)
 	if readErr != nil {
-		log.Fatal(readErr)
+		return constant.NewCError(
+			http.StatusBadGateway,
+			fmt.Sprintf(
+				"Alpha Vantage API response-body-parse error: %s",
+				readErr.Error(),
+			),
+		)
 	}
 	log.Print(string(body))
+
+	return nil
 }
