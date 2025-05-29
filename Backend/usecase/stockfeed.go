@@ -5,6 +5,7 @@ import (
 	"Backend/repo"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 
@@ -36,13 +37,13 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) {
 
 	response, err := http.Get(url)
 	if err != nil {
-		fmt.Print(err.Error())
+		log.Fatal(err)
 	}
 	defer response.Body.Close()
 
 	body, readErr := io.ReadAll(response.Body)
 	if readErr != nil {
-		fmt.Print(readErr.Error())
+		log.Fatal(readErr)
 	}
-	fmt.Println(string(body))
+	log.Print(string(body))
 }
