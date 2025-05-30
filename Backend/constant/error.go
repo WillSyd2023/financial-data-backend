@@ -19,6 +19,7 @@ var (
 	// GetSymbols handler
 	ErrNoKeywords = NewCError(http.StatusBadRequest, "please provide keywords")
 
-	// CollectData handler
-	ErrNoSymbol = NewCError(http.StatusBadRequest, "please provide symbol")
+	// CollectSymbol handler
+	ErrNoSymbol     = NewCError(http.StatusBadRequest, "please provide symbol")
+	ErrStockAlready = NewCError(http.StatusBadRequest, "The stock (symbol) is already tracked in the database and monitored regularly")
 )

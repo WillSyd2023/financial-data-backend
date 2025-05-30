@@ -79,6 +79,14 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 }
 
 func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) error {
+	// Check if symbol is in database already
+	exists, err := uc.rp.CheckSymbolExists(ctx, req)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return constant.ErrStockAlready
+	}
 
 	return nil
 }
