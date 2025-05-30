@@ -1,6 +1,9 @@
 package constant
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
 type CustomError struct {
 	StatusCode int
@@ -23,3 +26,24 @@ var (
 	ErrNoSymbol     = NewCError(http.StatusBadRequest, "please provide symbol")
 	ErrStockAlready = NewCError(http.StatusBadRequest, "The stock (symbol) is already tracked in the database and monitored regularly")
 )
+
+// Fetching data from e.g. Alpha Vantage API
+func ErrAlphaGet(err error) error {
+	return NewCError(
+		http.StatusBadGateway,
+		fmt.Sprintf(
+			"Alpha Vantage API GET error: %s",
+			err.Error(),
+		),
+	)
+}
+
+func ErrAlphaReadAll(err error) error {
+	return NewCError(
+		http.StatusBadGateway,
+		fmt.Sprintf(
+			"Alpha Vantage API body-io.ReadAll-parse error: %s",
+			err.Error(),
+		),
+	)
+}
