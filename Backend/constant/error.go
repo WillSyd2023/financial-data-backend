@@ -47,3 +47,13 @@ func ErrAlphaReadAll(err error) error {
 		),
 	)
 }
+
+func ErrAlphaUnmarshal(err error) error {
+	return NewCError(
+		http.StatusBadGateway,
+		fmt.Sprintf(
+			"Alpha Vantage API body-json.Unmarshal-parse error: %s",
+			err.Error(),
+		),
+	)
+}

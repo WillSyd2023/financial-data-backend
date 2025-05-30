@@ -7,7 +7,6 @@ import (
 	"Backend/util"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -54,13 +53,7 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 	var symbols dto.AlphaSymbolsRes
 	readErr = json.Unmarshal(body, &symbols)
 	if readErr != nil {
-		return nil, constant.NewCError(
-			http.StatusBadGateway,
-			fmt.Sprintf(
-				"Alpha Vantage API body-json.Unmarshal-parse error: %s",
-				readErr.Error(),
-			),
-		)
+		return nil, constant.ErrAlphaUnmarshal(err)
 	}
 
 	return &symbols, nil
