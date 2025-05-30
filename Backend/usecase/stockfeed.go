@@ -41,25 +41,13 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 
 	response, err := uc.hc.Get(url)
 	if err != nil {
-		return nil, constant.NewCError(
-			http.StatusBadGateway,
-			fmt.Sprintf(
-				"Alpha Vantage API GET error: %s",
-				err.Error(),
-			),
-		)
+		return nil, constant.ErrAlphaGet(err)
 	}
 	defer response.Body.Close()
 
 	body, readErr := uc.hc.ReadAll(response.Body)
 	if readErr != nil {
-		return nil, constant.NewCError(
-			http.StatusBadGateway,
-			fmt.Sprintf(
-				"Alpha Vantage API body-io.ReadAll-parse error: %s",
-				readErr.Error(),
-			),
-		)
+		return nil, constant.ErrAlphaReadAll(err)
 	}
 
 	// Unmarshal body
@@ -86,6 +74,25 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) er
 	}
 	if exists {
 		return constant.ErrStockAlready
+	}
+
+	// Retrieve data from Alpha Vantage API
+	url := fmt.Sprintf("https://www.alphavantage.co/"+
+		"query?function=TIME_SERIES_DAILY"+
+		"&symbol=%s&apikey=%s",
+		req.Symbol,
+		os.Getenv("ALPHA_VANTAGE_API_KEY"),
+	)
+
+	response, err := uc.hc.Get(url)
+	if err != nil {
+		return constant.ErrAlphaGet(err)
+	}
+	defer response.Body.Close()
+
+	body, readErr := uc.hc.ReadAll(response.Body)
+	if readErr != nil {
+		return constant.ErrAlphaReadAll(err)
 	}
 
 	return nil
