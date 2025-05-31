@@ -63,6 +63,7 @@ func (uc *Usecase) GetUnexpectedInfo(body []byte) error {
 		return constant.ErrAPIExceed
 	}
 
+	// For any unexpected error I have never seen before
 	return constant.NewCError(http.StatusBadGateway, info.Info)
 }
 
