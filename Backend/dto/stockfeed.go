@@ -26,10 +26,10 @@ type CollectSymbolReq struct {
 	Symbol string
 }
 
-type MetaData struct {
-	Symbol        string `json:"2. Symbol"`
-	LastRefreshed string `json:"3. Last Refreshed"`
-	OutputSize    string `json:"4. Output Size"`
+type CollectSymbolMeta struct {
+	Symbol        string    `json:"symbol"`
+	LastRefreshed time.Time `json:"last_refreshed"`
+	Size          int       `json:"size"`
 }
 
 type DailyOHLCVRes struct {
@@ -41,6 +41,6 @@ type DailyOHLCVRes struct {
 }
 
 type StockDataRes struct {
-	MetaData   MetaData                    `json:"meta_data"`
+	MetaData   CollectSymbolMeta           `json:"meta_data"`
 	TimeSeries map[time.Time]DailyOHLCVRes `json:"daily_time_series"`
 }

@@ -12,6 +12,12 @@ type AlphaSymbolsRes struct {
 }
 
 // CollectSymbol
+type AlphaCollectSymbolMeta struct {
+	Symbol        string `json:"2. Symbol"`
+	LastRefreshed string `json:"3. Last Refreshed"`
+	OutputSize    string `json:"4. Output Size"`
+}
+
 type AlphaDailyOHLCVRes struct {
 	Open   string `json:"1. open"`
 	High   string `json:"2. high"`
@@ -21,6 +27,6 @@ type AlphaDailyOHLCVRes struct {
 }
 
 type AlphaStockDataRes struct {
-	MetaData   MetaData                      `json:"Meta Data"`
+	MetaData   AlphaCollectSymbolMeta        `json:"Meta Data"`
 	TimeSeries map[string]AlphaDailyOHLCVRes `json:"Time Series (Daily)"`
 }
