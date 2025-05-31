@@ -1,9 +1,5 @@
 package dto
 
-import (
-	"github.com/shopspring/decimal"
-)
-
 type AlphaSymbolRes struct {
 	Symbol string `json:"1. symbol"`
 	Name   string `json:"2. name"`
@@ -15,11 +11,11 @@ type AlphaSymbolsRes struct {
 }
 
 type DailyOHLCV struct {
-	Open   decimal.Decimal `json:"1. open"`
-	High   decimal.Decimal `json:"2. high"`
-	Low    decimal.Decimal `json:"3. low"`
-	Close  decimal.Decimal `json:"4. close"`
-	Volume int             `json:"5. volume"`
+	Open   string `json:"1. open"`
+	High   string `json:"2. high"`
+	Low    string `json:"3. low"`
+	Close  string `json:"4. close"`
+	Volume string `json:"5. volume"`
 }
 
 type StockData struct {

@@ -88,5 +88,12 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) er
 		return constant.ErrAlphaReadAll(err)
 	}
 
+	// Unmarshal body
+	var stockData dto.StockData
+	readErr = json.Unmarshal(body, &stockData)
+	if readErr != nil {
+		return constant.ErrAlphaUnmarshal(err)
+	}
+
 	return nil
 }
