@@ -1,5 +1,6 @@
 package dto
 
+// GetSymbols
 type AlphaSymbolRes struct {
 	Symbol string `json:"1. symbol"`
 	Name   string `json:"2. name"`
@@ -10,7 +11,8 @@ type AlphaSymbolsRes struct {
 	BestMatches []AlphaSymbolRes `json:"bestMatches"`
 }
 
-type DailyOHLCV struct {
+// CollectSymbol
+type AlphaDailyOHLCVRes struct {
 	Open   string `json:"1. open"`
 	High   string `json:"2. high"`
 	Low    string `json:"3. low"`
@@ -18,11 +20,7 @@ type DailyOHLCV struct {
 	Volume string `json:"5. volume"`
 }
 
-type StockData struct {
-	MetaData struct {
-		Symbol        string `json:"2. Symbol"`
-		LastRefreshed string `json:"3. Last Refreshed"`
-		OutputSize    string `json:"4. Output Size"`
-	} `json:"Meta Data"`
-	TimeSeries map[string]DailyOHLCV `json:"Time Series (Daily)"`
+type AlphaStockDataRes struct {
+	MetaData   MetaData                      `json:"Meta Data"`
+	TimeSeries map[string]AlphaDailyOHLCVRes `json:"Time Series (Daily)"`
 }
