@@ -33,11 +33,12 @@ type CollectSymbolMeta struct {
 }
 
 type DailyOHLCVRes struct {
+	Day    time.Time                  `json:"day"`
 	OHLC   map[string]decimal.Decimal `json:"ohlc"`
 	Volume int                        `json:"volume"`
 }
 
 type StockDataRes struct {
-	MetaData   CollectSymbolMeta            `json:"meta_data"`
-	TimeSeries map[time.Time]*DailyOHLCVRes `json:"daily_time_series"`
+	MetaData   CollectSymbolMeta `json:"meta_data"`
+	TimeSeries []*DailyOHLCVRes  `json:"daily_time_series"`
 }

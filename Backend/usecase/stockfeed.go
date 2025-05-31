@@ -36,39 +36,36 @@ func NewUsecase(rp repo.RepoItf, hc util.HttpClientItf) *Usecase {
 
 func (uc *Usecase) parseOHLCV(ctx *gin.Context, timeSeries *map[string]string) (*dto.DailyOHLCVRes, error) {
 	TimeSeries := *timeSeries
-
 	var ohlcv dto.DailyOHLCVRes
-	var parts []string
-	var text string
-	var ok bool
-	var err error
 
 	// - OHLC
 	for _, value := range []string{"1. open", "2. high",
 		"3. low", "4. close"} {
-		parts = strings.Split(value, " ")
-		text, ok = TimeSeries[value]
+		parts := strings.Split(value, " ")
+		text, ok := TimeSeries[value]
 		if !ok {
 			return nil, constant.ErrAlphaParseBody(
 				fmt.Sprintf("can't find %s price as usual", parts[1]),
 			)
 		}
-		ohlcv.OHLC[parts[1]], err = decimal.NewFromString(text)
+		dec, err := decimal.NewFromString(text)
 		if err != nil {
 			return nil, constant.ErrAlphaParseBody(err.Error())
 		}
+		ohlcv.OHLC[parts[1]] = dec
 	}
 
 	// - Volume
-	text, ok = TimeSeries["5. volume"]
+	text, ok := TimeSeries["5. volume"]
 	if !ok {
 		return nil, constant.ErrAlphaParseBody(
 			"can't find volume as usual")
 	}
-	ohlcv.Volume, err = strconv.Atoi(text)
+	vol, err := strconv.Atoi(text)
 	if err != nil {
 		return nil, constant.ErrAlphaParseBody(err.Error())
 	}
+	ohlcv.Volume = vol
 
 	return &ohlcv, nil
 }
@@ -144,7 +141,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	var stockData dto.StockDataRes
 	var metaData dto.CollectSymbolMeta
 
-	// - collect metadata
+	// 1. collect metadata
 	metaData.Symbol = alphaMeta.Symbol
 
 	t, err := time.Parse(constant.LayoutISO, alphaMeta.LastRefreshed)
@@ -158,7 +155,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 
 	stockData.MetaData = metaData
 
-	// - collect first constant.DefaultStocksNum days of time series data
+	// 2. collect first constant.DefaultStocksNum days of time series data
 	earliestDate := metaData.LastRefreshed.AddDate(0, 0, -metaData.Size+1)
 	for key, value := range alphaData.TimeSeries {
 		keyDate, err := time.Parse(constant.LayoutISO, key)
@@ -167,6 +164,12 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 		}
 
 		if !keyDate.Before(earliestDate) {
+			ohlcv, err := uc.parseOHLCV(ctx, &value)
+			if err != nil {
+				return nil, constant.ErrAlphaParseBody(err.Error())
+			}
+			ohlcv.Day = keyDate
+			stockData.TimeSeries = append(stockData.TimeSeries, ohlcv)
 		}
 	}
 
