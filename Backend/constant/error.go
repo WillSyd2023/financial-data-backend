@@ -20,11 +20,15 @@ func (err CustomError) Error() string {
 
 var (
 	// GetSymbols handler
-	ErrNoKeywords = NewCError(http.StatusBadRequest, "please provide keywords")
+	ErrNoKeywords = NewCError(http.StatusBadRequest,
+		"please provide keywords")
 
 	// CollectSymbol handler
-	ErrNoSymbol     = NewCError(http.StatusBadRequest, "please provide symbol")
-	ErrStockAlready = NewCError(http.StatusBadRequest, "The stock (symbol) is already tracked in the database and monitored regularly")
+	ErrNoSymbol = NewCError(http.StatusBadRequest,
+		"please provide symbol")
+	ErrStockAlready = NewCError(http.StatusBadRequest,
+		"The stock (symbol) is already tracked in the database"+
+			"and monitored regularly")
 )
 
 // Fetching data from e.g. Alpha Vantage API
