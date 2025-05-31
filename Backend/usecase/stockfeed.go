@@ -7,6 +7,7 @@ import (
 	"Backend/util"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -88,11 +89,30 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) er
 	}
 
 	// Unmarshal body
-	var stockData dto.StockData
-	readErr = uc.hc.Unmarshal(body, &stockData)
+	var alphaData dto.AlphaStockDataRes
+	readErr = uc.hc.Unmarshal(body, &alphaData)
 	if readErr != nil {
 		return constant.ErrAlphaUnmarshal(err)
 	}
+	alphaMeta := alphaData.MetaData
+
+	// Process data from API:
+	var stockData dto.StockDataRes
+	var metaData dto.CollectSymbolMeta
+
+	// - collect metadata
+	metaData.Symbol = alphaMeta.Symbol
+
+	t, err := time.Parse(constant.LayoutISO, alphaMeta.LastRefreshed)
+	if err != nil {
+		return constant.ErrAlphaParseDate(err)
+	}
+	metaData.LastRefreshed = t
+
+	// (there is a default size of stocks to be recorded per symbol)
+	metaData.Size = constant.DefaultStocksNum
+
+	stockData.MetaData = metaData
 
 	return nil
 }

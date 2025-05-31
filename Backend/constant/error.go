@@ -28,6 +28,7 @@ var (
 )
 
 // Fetching data from e.g. Alpha Vantage API
+
 func ErrAlphaGet(err error) error {
 	return NewCError(
 		http.StatusBadGateway,
@@ -53,6 +54,16 @@ func ErrAlphaUnmarshal(err error) error {
 		http.StatusBadGateway,
 		fmt.Sprintf(
 			"Alpha Vantage API body-json.Unmarshal-parse error: %s",
+			err.Error(),
+		),
+	)
+}
+
+func ErrAlphaParseDate(err error) error {
+	return NewCError(
+		http.StatusBadGateway,
+		fmt.Sprintf(
+			"Alpha Vantage API last-refreshed-date-parse error: %s",
 			err.Error(),
 		),
 	)
