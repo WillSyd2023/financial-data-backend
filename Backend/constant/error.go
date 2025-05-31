@@ -63,12 +63,12 @@ func ErrAlphaUnmarshal(err error) error {
 	)
 }
 
-func ErrAlphaParseDate(err error) error {
+func ErrAlphaParseBody(err string) error {
 	return NewCError(
 		http.StatusBadGateway,
 		fmt.Sprintf(
-			"Alpha Vantage API last-refreshed-date-parse error: %s",
-			err.Error(),
+			"Alpha Vantage API response-body-parse error: %s",
+			err,
 		),
 	)
 }

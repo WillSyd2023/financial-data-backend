@@ -8,14 +8,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 )
 
 type UsecaseItf interface {
+	parseOHLCV(*gin.Context, *map[string]string) (*dto.DailyOHLCVRes, error)
 	GetSymbols(*gin.Context, *dto.GetSymbolsReq) (*dto.AlphaSymbolsRes, error)
-	CollectSymbol(*gin.Context, *dto.CollectSymbolReq) error
+	CollectSymbol(*gin.Context, *dto.CollectSymbolReq) (*dto.StockDataRes, error)
 }
 
 type Usecase struct {
@@ -28,6 +32,45 @@ func NewUsecase(rp repo.RepoItf, hc util.HttpClientItf) *Usecase {
 		rp: rp,
 		hc: hc,
 	}
+}
+
+func (uc *Usecase) parseOHLCV(ctx *gin.Context, timeSeries *map[string]string) (*dto.DailyOHLCVRes, error) {
+	TimeSeries := *timeSeries
+
+	var ohlcv dto.DailyOHLCVRes
+	var parts []string
+	var text string
+	var ok bool
+	var err error
+
+	// - OHLC
+	for _, value := range []string{"1. open", "2. high",
+		"3. low", "4. close"} {
+		parts = strings.Split(value, " ")
+		text, ok = TimeSeries[value]
+		if !ok {
+			return nil, constant.ErrAlphaParseBody(
+				fmt.Sprintf("can't find %s price as usual", parts[1]),
+			)
+		}
+		ohlcv.OHLC[parts[1]], err = decimal.NewFromString(text)
+		if err != nil {
+			return nil, constant.ErrAlphaParseBody(err.Error())
+		}
+	}
+
+	// - Volume
+	text, ok = TimeSeries["5. volume"]
+	if !ok {
+		return nil, constant.ErrAlphaParseBody(
+			"can't find volume as usual")
+	}
+	ohlcv.Volume, err = strconv.Atoi(text)
+	if err != nil {
+		return nil, constant.ErrAlphaParseBody(err.Error())
+	}
+
+	return &ohlcv, nil
 }
 
 func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.AlphaSymbolsRes, error) {
@@ -60,14 +103,14 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 	return &symbols, nil
 }
 
-func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) error {
+func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*dto.StockDataRes, error) {
 	// Check if symbol is in database already
 	exists, err := uc.rp.CheckSymbolExists(ctx, req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if exists {
-		return constant.ErrStockAlready
+		return nil, constant.ErrStockAlready
 	}
 
 	// Retrieve data from Alpha Vantage API
@@ -80,20 +123,20 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) er
 
 	response, err := uc.hc.Get(url)
 	if err != nil {
-		return constant.ErrAlphaGet(err)
+		return nil, constant.ErrAlphaGet(err)
 	}
 	defer response.Body.Close()
 
 	body, readErr := uc.hc.ReadAll(response.Body)
 	if readErr != nil {
-		return constant.ErrAlphaReadAll(err)
+		return nil, constant.ErrAlphaReadAll(err)
 	}
 
 	// Unmarshal body
 	var alphaData dto.AlphaStockDataRes
 	readErr = json.Unmarshal(body, &alphaData)
 	if readErr != nil {
-		return constant.ErrAlphaUnmarshal(err)
+		return nil, constant.ErrAlphaUnmarshal(err)
 	}
 	alphaMeta := alphaData.MetaData
 
@@ -106,7 +149,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) er
 
 	t, err := time.Parse(constant.LayoutISO, alphaMeta.LastRefreshed)
 	if err != nil {
-		return constant.ErrAlphaParseDate(err)
+		return nil, constant.ErrAlphaParseBody(err.Error())
 	}
 	metaData.LastRefreshed = t
 
@@ -117,15 +160,15 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) er
 
 	// - collect first constant.DefaultStocksNum days of time series data
 	earliestDate := metaData.LastRefreshed.AddDate(0, 0, -metaData.Size+1)
-	for key, _ := range alphaData.TimeSeries {
+	for key, value := range alphaData.TimeSeries {
 		keyDate, err := time.Parse(constant.LayoutISO, key)
 		if err != nil {
-			return constant.ErrAlphaParseDate(err)
+			return nil, constant.ErrAlphaParseBody(err.Error())
 		}
 
 		if !keyDate.Before(earliestDate) {
 		}
 	}
 
-	return nil
+	return &stockData, nil
 }
