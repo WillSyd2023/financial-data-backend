@@ -1,5 +1,9 @@
 package dto
 
+type AlphaInfo struct {
+	Info string `json:"Information"`
+}
+
 // GetSymbols
 type AlphaSymbolRes struct {
 	Symbol string `json:"1. symbol"`
