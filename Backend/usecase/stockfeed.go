@@ -5,7 +5,6 @@ import (
 	"Backend/dto"
 	"Backend/repo"
 	"Backend/util"
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -51,7 +50,7 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 
 	// Unmarshal body
 	var symbols dto.AlphaSymbolsRes
-	readErr = json.Unmarshal(body, &symbols)
+	readErr = uc.hc.Unmarshal(body, &symbols)
 	if readErr != nil {
 		return nil, constant.ErrAlphaUnmarshal(err)
 	}
@@ -90,7 +89,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) er
 
 	// Unmarshal body
 	var stockData dto.StockData
-	readErr = json.Unmarshal(body, &stockData)
+	readErr = uc.hc.Unmarshal(body, &stockData)
 	if readErr != nil {
 		return constant.ErrAlphaUnmarshal(err)
 	}
