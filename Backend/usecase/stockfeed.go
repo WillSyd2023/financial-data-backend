@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -17,7 +18,11 @@ import (
 )
 
 type UsecaseItf interface {
-	parseOHLCV(*gin.Context, *map[string]string) (*dto.DailyOHLCVRes, error)
+	// Helper methods
+	ParseOHLCV(*gin.Context, *map[string]string) (*dto.DailyOHLCVRes, error)
+	PrevWeekend(t time.Time) time.Time
+
+	// Main methods
 	GetSymbols(*gin.Context, *dto.GetSymbolsReq) (*dto.AlphaSymbolsRes, error)
 	CollectSymbol(*gin.Context, *dto.CollectSymbolReq) (*dto.StockDataRes, error)
 }
@@ -34,21 +39,25 @@ func NewUsecase(rp repo.RepoItf, hc util.HttpClientItf) *Usecase {
 	}
 }
 
-func (uc *Usecase) parseOHLCV(ctx *gin.Context, timeSeries *map[string]string) (*dto.DailyOHLCVRes, error) {
+func (uc *Usecase) ParseOHLCV(ctx *gin.Context, timeSeries *map[string]string) (*dto.DailyOHLCVRes, error) {
 	TimeSeries := *timeSeries
 	var ohlcv dto.DailyOHLCVRes
+	ohlcv.OHLC = make(map[string]decimal.Decimal)
 
 	// - OHLC
 	for _, value := range []string{"1. open", "2. high",
 		"3. low", "4. close"} {
+
 		parts := strings.Split(value, " ")
 		text, ok := TimeSeries[value]
+
 		if !ok {
 			return nil, constant.ErrAlphaParseBody(
 				fmt.Sprintf("can't find %s price as usual", parts[1]),
 			)
 		}
 		dec, err := decimal.NewFromString(text)
+
 		if err != nil {
 			return nil, constant.ErrAlphaParseBody(err.Error())
 		}
@@ -68,6 +77,16 @@ func (uc *Usecase) parseOHLCV(ctx *gin.Context, timeSeries *map[string]string) (
 	ohlcv.Volume = vol
 
 	return &ohlcv, nil
+}
+
+func (uc *Usecase) PrevWeekend(t time.Time) time.Time {
+	for {
+		weekday := t.Weekday()
+		if weekday == time.Saturday || weekday == time.Sunday {
+			return t
+		}
+		t = t.AddDate(0, 0, -1)
+	}
 }
 
 func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.AlphaSymbolsRes, error) {
@@ -115,10 +134,11 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 		"query?function=TIME_SERIES_DAILY"+
 		"&symbol=%s&apikey=%s",
 		req.Symbol,
-		os.Getenv("ALPHA_VANTAGE_API_KEY"),
+		"demo",
 	)
 
 	response, err := uc.hc.Get(url)
+
 	if err != nil {
 		return nil, constant.ErrAlphaGet(err)
 	}
@@ -157,6 +177,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 
 	// 2. collect first constant.DefaultStocksNum days of time series data
 	earliestDate := metaData.LastRefreshed.AddDate(0, 0, -metaData.Size+1)
+	earliestDate = uc.PrevWeekend(earliestDate)
 	for key, value := range alphaData.TimeSeries {
 		keyDate, err := time.Parse(constant.LayoutISO, key)
 		if err != nil {
@@ -164,7 +185,9 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 		}
 
 		if !keyDate.Before(earliestDate) {
-			ohlcv, err := uc.parseOHLCV(ctx, &value)
+
+			ohlcv, err := uc.ParseOHLCV(ctx, &value)
+
 			if err != nil {
 				return nil, constant.ErrAlphaParseBody(err.Error())
 			}
@@ -172,6 +195,13 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 			stockData.TimeSeries = append(stockData.TimeSeries, ohlcv)
 		}
 	}
+
+	// 3. sort the kept time series data
+	sort.SliceStable(stockData.TimeSeries, func(i, j int) bool {
+		return stockData.TimeSeries[i].Day.Before(
+			stockData.TimeSeries[j].Day,
+		)
+	})
 
 	return &stockData, nil
 }
