@@ -75,5 +75,16 @@ func (hd *Handler) CollectSymbol(ctx *gin.Context) {
 	req.Symbol = symbol
 
 	// usecase
-	hd.uc.CollectSymbol(ctx, &req)
+	stockData, err := hd.uc.CollectSymbol(ctx, &req)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated,
+		gin.H{
+			"message": nil,
+			"error":   nil,
+			"data":    stockData,
+		})
 }
