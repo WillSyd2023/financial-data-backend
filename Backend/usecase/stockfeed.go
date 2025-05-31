@@ -115,5 +115,17 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) er
 
 	stockData.MetaData = metaData
 
+	// - collect first constant.DefaultStocksNum days of time series data
+	earliestDate := metaData.LastRefreshed.AddDate(0, 0, -metaData.Size+1)
+	for key, _ := range alphaData.TimeSeries {
+		keyDate, err := time.Parse(constant.LayoutISO, key)
+		if err != nil {
+			return constant.ErrAlphaParseDate(err)
+		}
+
+		if !keyDate.Before(earliestDate) {
+		}
+	}
+
 	return nil
 }
