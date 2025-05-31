@@ -7,6 +7,8 @@ import (
 	"Backend/util"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"sort"
 	"strconv"
@@ -19,8 +21,9 @@ import (
 
 type UsecaseItf interface {
 	// Helper methods
-	ParseOHLCV(*gin.Context, *map[string]string) (*dto.DailyOHLCVRes, error)
+	GetUnexpectedInfo([]byte) error
 	PrevWeekend(t time.Time) time.Time
+	ParseOHLCV(*gin.Context, *map[string]string) (*dto.DailyOHLCVRes, error)
 
 	// Main methods
 	GetSymbols(*gin.Context, *dto.GetSymbolsReq) (*dto.AlphaSymbolsRes, error)
@@ -36,6 +39,40 @@ func NewUsecase(rp repo.RepoItf, hc util.HttpClientItf) *Usecase {
 	return &Usecase{
 		rp: rp,
 		hc: hc,
+	}
+}
+
+func (uc *Usecase) GetUnexpectedInfo(body []byte) error {
+	var info dto.AlphaInfo
+	readErr := json.Unmarshal(body, &info)
+	if readErr != nil {
+		return constant.ErrAlphaUnmarshal(readErr)
+	}
+
+	// Indicate if this is not an information-JSON body
+	if info.Info == "" {
+		return nil
+	}
+
+	// Erase any trace of my API key
+	info.Info = strings.ReplaceAll(info.Info,
+		os.Getenv("ALPHA_VANTAGE_API_KEY"), "[REDACTED]")
+
+	// Simplify exceed-API-limit message
+	if info.Info == constant.APIExceedLimit {
+		return constant.ErrAPIExceed
+	}
+
+	return constant.NewCError(http.StatusBadGateway, info.Info)
+}
+
+func (uc *Usecase) PrevWeekend(t time.Time) time.Time {
+	for {
+		weekday := t.Weekday()
+		if weekday == time.Saturday || weekday == time.Sunday {
+			return t
+		}
+		t = t.AddDate(0, 0, -1)
 	}
 }
 
@@ -79,16 +116,6 @@ func (uc *Usecase) ParseOHLCV(ctx *gin.Context, timeSeries *map[string]string) (
 	return &ohlcv, nil
 }
 
-func (uc *Usecase) PrevWeekend(t time.Time) time.Time {
-	for {
-		weekday := t.Weekday()
-		if weekday == time.Saturday || weekday == time.Sunday {
-			return t
-		}
-		t = t.AddDate(0, 0, -1)
-	}
-}
-
 func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.AlphaSymbolsRes, error) {
 	// Retrieve data from Alpha Vantage API
 	url := fmt.Sprintf("https://www.alphavantage.co/"+
@@ -113,7 +140,13 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 	var symbols dto.AlphaSymbolsRes
 	readErr = json.Unmarshal(body, &symbols)
 	if readErr != nil {
-		return nil, constant.ErrAlphaUnmarshal(err)
+		return nil, constant.ErrAlphaUnmarshal(readErr)
+	}
+
+	// Check for e.g. API rate limit is exceeded
+	err = uc.GetUnexpectedInfo(body)
+	if err != nil {
+		return nil, err
 	}
 
 	return &symbols, nil
@@ -134,7 +167,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 		"query?function=TIME_SERIES_DAILY"+
 		"&symbol=%s&apikey=%s",
 		req.Symbol,
-		"demo",
+		os.Getenv("ALPHA_VANTAGE_API_KEY"),
 	)
 
 	response, err := uc.hc.Get(url)
@@ -153,9 +186,17 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	var alphaData dto.AlphaStockDataRes
 	readErr = json.Unmarshal(body, &alphaData)
 	if readErr != nil {
-		return nil, constant.ErrAlphaUnmarshal(err)
+		return nil, constant.ErrAlphaUnmarshal(readErr)
 	}
+
 	alphaMeta := alphaData.MetaData
+
+	// Check for e.g. API rate limit is exceeded
+	err = uc.GetUnexpectedInfo(body)
+	log.Println(err)
+	if err != nil {
+		return nil, err
+	}
 
 	// Process data from API:
 	var stockData dto.StockDataRes

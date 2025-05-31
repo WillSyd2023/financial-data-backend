@@ -72,3 +72,14 @@ func ErrAlphaParseBody(err string) error {
 		),
 	)
 }
+
+// Unexpected information text from Alpha Vantage API
+// (and corresponding constant error)
+var (
+	APIExceedLimit = "We have detected your API key as [REDACTED] " +
+		"and our standard API rate limit is 25 requests per day. " +
+		"Please subscribe to any of the premium plans at " +
+		"https://www.alphavantage.co/premium/ to instantly remove " +
+		"all daily rate limits."
+	ErrAPIExceed = NewCError(http.StatusBadGateway, "exceeded API-use limit today")
+)
