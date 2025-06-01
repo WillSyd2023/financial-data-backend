@@ -137,17 +137,17 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 		return nil, constant.ErrAlphaReadAll(err)
 	}
 
+	// Check for e.g. API rate limit is exceeded
+	err = uc.GetUnexpectedInfo(body)
+	if err != nil {
+		return nil, err
+	}
+
 	// Unmarshal body
 	var symbols dto.AlphaSymbolsRes
 	readErr = json.Unmarshal(body, &symbols)
 	if readErr != nil {
 		return nil, constant.ErrAlphaUnmarshal(readErr)
-	}
-
-	// Check for e.g. API rate limit is exceeded
-	err = uc.GetUnexpectedInfo(body)
-	if err != nil {
-		return nil, err
 	}
 
 	return &symbols, nil
@@ -183,6 +183,13 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 		return nil, constant.ErrAlphaReadAll(err)
 	}
 
+	// Check for e.g. API rate limit is exceeded
+	err = uc.GetUnexpectedInfo(body)
+	log.Println(err)
+	if err != nil {
+		return nil, err
+	}
+
 	// Unmarshal body
 	var alphaData dto.AlphaStockDataRes
 	readErr = json.Unmarshal(body, &alphaData)
@@ -191,13 +198,6 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	}
 
 	alphaMeta := alphaData.MetaData
-
-	// Check for e.g. API rate limit is exceeded
-	err = uc.GetUnexpectedInfo(body)
-	log.Println(err)
-	if err != nil {
-		return nil, err
-	}
 
 	// Process data from API:
 	var stockData dto.StockDataRes
