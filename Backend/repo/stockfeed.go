@@ -8,7 +8,7 @@ import (
 )
 
 type RepoItf interface {
-	CheckSymbolExists(*gin.Context, *dto.CollectSymbolReq) (bool, error)
+	CheckSymbolExists(*gin.Context, *dto.CollectSymbolReq) (int, error)
 }
 
 type Repo struct {
@@ -21,10 +21,11 @@ func NewRepo(db *sql.DB) *Repo {
 	}
 }
 
-func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (bool, error) {
-	var exists bool
-	err := rp.db.QueryRow(
-		"SELECT EXISTS(SELECT 1 FROM symbols WHERE symbol = $1);",
-		req.Symbol).Scan(&exists)
-	return exists, err
+func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (int, error) {
+	var id int
+	err := rp.db.QueryRowContext(
+		ctx,
+		"SELECT symbol_id FROM symbols WHERE symbol = $1",
+		req.Symbol).Scan(&id)
+	return id, err
 }

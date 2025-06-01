@@ -155,11 +155,11 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 
 func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*dto.StockDataRes, error) {
 	// Check if symbol is in database already
-	exists, err := uc.rp.CheckSymbolExists(ctx, req)
+	id, err := uc.rp.CheckSymbolExists(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	if exists {
+	if id != 0 {
 		return nil, constant.ErrStockAlready
 	}
 
@@ -168,7 +168,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 		"query?function=TIME_SERIES_DAILY"+
 		"&symbol=%s&apikey=%s",
 		req.Symbol,
-		os.Getenv("ALPHA_VANTAGE_API_KEY"),
+		"demo",
 	)
 
 	response, err := uc.hc.Get(url)
