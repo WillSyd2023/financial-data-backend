@@ -40,5 +40,5 @@ type DailyOHLCVRes struct {
 
 type StockDataRes struct {
 	MetaData   CollectSymbolMeta `json:"meta_data"`
-	TimeSeries []*DailyOHLCVRes  `json:"daily_time_series"`
+	TimeSeries []DailyOHLCVRes   `json:"daily_time_series"`
 }

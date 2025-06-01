@@ -234,7 +234,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 				return nil, constant.ErrAlphaParseBody(err.Error())
 			}
 			ohlcv.Day = keyDate
-			stockData.TimeSeries = append(stockData.TimeSeries, ohlcv)
+			stockData.TimeSeries = append(stockData.TimeSeries, *ohlcv)
 		}
 	}
 
