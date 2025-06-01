@@ -9,6 +9,7 @@ import (
 
 type RepoItf interface {
 	CheckSymbolExists(*gin.Context, *dto.CollectSymbolReq) (int, error)
+	InsertNewSymbolData(*gin.Context, int, *dto.StockDataRes) error
 }
 
 type Repo struct {
@@ -28,4 +29,8 @@ func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (
 		"SELECT symbol_id FROM symbols WHERE symbol = $1",
 		req.Symbol).Scan(&id)
 	return id, err
+}
+
+func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, id int, stockData *dto.StockDataRes) error {
+	return nil
 }

@@ -245,5 +245,11 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 		)
 	})
 
+	// Insert data
+	err = uc.rp.InsertNewSymbolData(ctx, id, &stockData)
+	if err != nil {
+		return nil, err
+	}
+
 	return &stockData, nil
 }
