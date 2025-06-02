@@ -220,6 +220,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	earliestDate := metaData.LastRefreshed.AddDate(0, 0,
 		-constant.DefaultStocksNum+1)
 	earliestDate = uc.PrevWeekend(earliestDate)
+	timeSeries := make([]dto.DailyOHLCVRes, 0)
 	for key, value := range alphaData.TimeSeries {
 		keyDate, err := time.Parse(constant.LayoutISO, key)
 		if err != nil {
@@ -234,22 +235,22 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 				return nil, constant.ErrAlphaParseBody(err.Error())
 			}
 			ohlcv.Day = keyDate
-			stockData.TimeSeries = append(stockData.TimeSeries, *ohlcv)
+			timeSeries = append(timeSeries, *ohlcv)
 		}
 	}
 
 	// - figure out number of time series data kept
-	metaData.Size = len(stockData.TimeSeries)
+	metaData.Size = len(timeSeries)
 
 	// 3. sort the kept time series data
-	sort.SliceStable(stockData.TimeSeries, func(i, j int) bool {
-		return stockData.TimeSeries[i].Day.Before(
-			stockData.TimeSeries[j].Day,
+	sort.SliceStable(timeSeries, func(i, j int) bool {
+		return timeSeries[i].Day.Before(
+			timeSeries[j].Day,
 		)
 	})
 
 	// Insert data
-	err = uc.rp.InsertNewSymbolData(ctx, &stockData)
+	err = uc.rp.InsertNewSymbolData(ctx, &stockData, timeSeries)
 	if err != nil {
 		return nil, err
 	}

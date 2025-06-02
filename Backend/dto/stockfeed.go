@@ -38,15 +38,15 @@ type DailyOHLCVRes struct {
 	Volume int                        `json:"volume"`
 }
 
-type Week struct {
-	Monday time.Time `json:"monday"`
-	Friday time.Time `json:"friday"`
+type WeekRes struct {
+	Monday    time.Time       `json:"monday"`
+	Friday    time.Time       `json:"friday"`
+	DailyData []DailyOHLCVRes `json:"daily_data"`
 }
 
 type StockDataRes struct {
-	MetaData   *CollectSymbolMeta `json:"meta_data"`
-	Weeks      []Week             `json:"weeks_covered"`
-	TimeSeries []DailyOHLCVRes    `json:"daily_time_series"`
+	MetaData *CollectSymbolMeta `json:"meta_data"`
+	Weeks    []WeekRes          `json:"weeks_covered"`
 }
 
 // DeleteSymbol

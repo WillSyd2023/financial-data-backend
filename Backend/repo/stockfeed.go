@@ -11,7 +11,7 @@ import (
 
 type RepoItf interface {
 	CheckSymbolExists(*gin.Context, *dto.CollectSymbolReq) (bool, error)
-	InsertNewSymbolData(*gin.Context, *dto.StockDataRes) error
+	InsertNewSymbolData(*gin.Context, *dto.StockDataRes, []dto.DailyOHLCVRes) error
 	DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) error
 }
 
@@ -37,7 +37,7 @@ func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (
 	return exists, nil
 }
 
-func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRes) error {
+func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRes, timeSeries []dto.DailyOHLCVRes) error {
 	// Insert new symbol and last-refreshed data
 	var id int
 	err := rp.db.QueryRowContext(
@@ -56,7 +56,7 @@ func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRe
 	query := "INSERT INTO ohlcv_per_day " +
 		"(record_day, open_price, high_price, low_price, close_price, volume, symbol_id) " +
 		"VALUES "
-	for i, ohlcv := range stockData.TimeSeries {
+	for i, ohlcv := range timeSeries {
 		// Comma for SQL syntax
 		if i != 0 {
 			query += ", "
