@@ -97,4 +97,20 @@ func (hd *Handler) DeleteSymbol(ctx *gin.Context) {
 		ctx.Error(constant.ErrNoSymbol)
 		return
 	}
+	var req dto.DeleteSymbolReq
+	req.Symbol = symbol
+
+	// usecase
+	err := hd.uc.DeleteSymbol(ctx, &req)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent,
+		gin.H{
+			"message": nil,
+			"error":   nil,
+			"data":    nil,
+		})
 }
