@@ -33,6 +33,7 @@ func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (
 
 func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRes) error {
 	// Insert new symbol and last-refreshed data
+
 	var id int
 	err := rp.db.QueryRowContext(
 		ctx,
