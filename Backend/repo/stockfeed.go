@@ -3,6 +3,7 @@ package repo
 import (
 	"Backend/dto"
 	"database/sql"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -33,7 +34,6 @@ func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (
 
 func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRes) error {
 	// Insert new symbol and last-refreshed data
-
 	var id int
 	err := rp.db.QueryRowContext(
 		ctx,
@@ -51,6 +51,25 @@ func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRe
 	query := "INSERT INTO ohlcv_per_day " +
 		"(record_day, open_price, high_price, low_price, close_price, volume, symbol_id) " +
 		"VALUES "
+	for i, ohlcv := range stockData.TimeSeries {
+		// Comma for SQL syntax
+		if i != 0 {
+			query += ", "
+		}
 
-	return nil
+		// Numbering for SQL code
+		query += fmt.Sprintf(
+			"($%d, $%d, $%d, $%d, $%d, $%d, $%d)",
+			pos, pos+1, pos+2, pos+3, pos+4, pos+5, pos+6)
+		pos += 7
+
+		// Data corresponding to numbering
+		data = append(data,
+			ohlcv.Day, ohlcv.OHLC["open"], ohlcv.OHLC["high"], ohlcv.OHLC["low"],
+			ohlcv.OHLC["close"], ohlcv.Volume, id)
+	}
+
+	// Insert data
+	_, err = rp.db.ExecContext(ctx, query, data...)
+	return err
 }
