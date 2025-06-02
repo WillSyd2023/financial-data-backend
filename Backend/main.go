@@ -39,6 +39,9 @@ func main() {
 	// Collect and return stock data
 	r.POST("/data/:symbol", hd.CollectSymbol)
 
+	// Delete a recorded symbol and its data
+	r.DELETE("/data/:symbol", hd.DeleteSymbol)
+
 	// Run server
 	srv := &http.Server{
 		Addr:    os.Getenv("SERVER_PORT"),

@@ -12,6 +12,7 @@ import (
 type HandlerItf interface {
 	GetSymbols(*gin.Context)
 	CollectSymbol(*gin.Context)
+	DeleteSymbol(*gin.Context)
 }
 
 type Handler struct {
@@ -87,4 +88,13 @@ func (hd *Handler) CollectSymbol(ctx *gin.Context) {
 			"error":   nil,
 			"data":    stockData,
 		})
+}
+
+func (hd *Handler) DeleteSymbol(ctx *gin.Context) {
+	// request validation
+	symbol := ctx.Param("symbol")
+	if symbol == "" {
+		ctx.Error(constant.ErrNoSymbol)
+		return
+	}
 }
