@@ -4,12 +4,14 @@ import (
 	"Backend/dto"
 	"database/sql"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 type RepoItf interface {
-	CheckSymbolExists(*gin.Context, *dto.CollectSymbolReq) (int, error)
+	CheckSymbolExists(*gin.Context, *dto.CollectSymbolReq) (bool, error)
 	InsertNewSymbolData(*gin.Context, *dto.StockDataRes) error
 }
 
@@ -23,24 +25,31 @@ func NewRepo(db *sql.DB) *Repo {
 	}
 }
 
-func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (int, error) {
-	var id int
+func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (bool, error) {
+	var exists bool
 	err := rp.db.QueryRowContext(
 		ctx,
-		"SELECT symbol_id FROM symbols WHERE symbol = $1",
-		req.Symbol).Scan(&id)
-	return id, err
+		"SELECT EXISTS(SELECT 1 FROM symbols WHERE symbol = $1)",
+		req.Symbol).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }
 
 func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRes) error {
 	// Insert new symbol and last-refreshed data
+	log.Println(stockData.MetaData.LastRefreshed.Format(time.RFC3339))
+
 	var id int
 	err := rp.db.QueryRowContext(
 		ctx,
 		"INSERT INTO symbols (symbol, last_refreshed) VALUES ($1, $2) RETURNING symbol_id",
 		stockData.MetaData.Symbol,
-		stockData.MetaData.LastRefreshed,
+		stockData.MetaData.LastRefreshed.Format(time.RFC3339),
 	).Scan(&id)
+	log.Println("HERE")
+	log.Println(err)
 	if err != nil {
 		return err
 	}
@@ -65,11 +74,12 @@ func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRe
 
 		// Data corresponding to numbering
 		data = append(data,
-			ohlcv.Day, ohlcv.OHLC["open"], ohlcv.OHLC["high"], ohlcv.OHLC["low"],
+			ohlcv.Day.Format(time.RFC3339), ohlcv.OHLC["open"], ohlcv.OHLC["high"], ohlcv.OHLC["low"],
 			ohlcv.OHLC["close"], ohlcv.Volume, id)
 	}
 
 	// Insert data
 	_, err = rp.db.ExecContext(ctx, query, data...)
+	log.Println(err)
 	return err
 }

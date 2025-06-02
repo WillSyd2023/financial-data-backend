@@ -123,7 +123,7 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 		"query?function=SYMBOL_SEARCH"+
 		"&keywords=%s&apikey=%s",
 		req.Prefix,
-		os.Getenv("ALPHA_VANTAGE_API_KEY"),
+		"demo",
 	)
 
 	response, err := uc.hc.Get(url)
@@ -155,11 +155,11 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 
 func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*dto.StockDataRes, error) {
 	// Check if symbol is in database already
-	id, err := uc.rp.CheckSymbolExists(ctx, req)
+	exists, err := uc.rp.CheckSymbolExists(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	if id != 0 {
+	if exists {
 		return nil, constant.ErrStockAlready
 	}
 
