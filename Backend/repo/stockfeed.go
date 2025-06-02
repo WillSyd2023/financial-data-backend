@@ -12,6 +12,7 @@ import (
 type RepoItf interface {
 	CheckSymbolExists(*gin.Context, *dto.CollectSymbolReq) (bool, error)
 	InsertNewSymbolData(*gin.Context, *dto.StockDataRes) error
+	DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) error
 }
 
 type Repo struct {
@@ -75,5 +76,17 @@ func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRe
 
 	// Insert data
 	_, err = rp.db.ExecContext(ctx, query, data...)
+	return err
+}
+
+func (rp *Repo) DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) error {
+	res, err := rp.db.ExecContext(ctx,
+		"DELETE FROM symbols WHERE symbol=$1", req.Symbol)
+	if err == nil {
+		count, err := res.RowsAffected()
+		if err == nil && count > 0 {
+			return nil
+		}
+	}
 	return err
 }
