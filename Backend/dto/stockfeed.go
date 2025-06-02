@@ -39,6 +39,11 @@ type DailyOHLCVRes struct {
 }
 
 type StockDataRes struct {
-	MetaData   CollectSymbolMeta `json:"meta_data"`
-	TimeSeries []DailyOHLCVRes   `json:"daily_time_series"`
+	MetaData   *CollectSymbolMeta `json:"meta_data"`
+	TimeSeries []DailyOHLCVRes    `json:"daily_time_series"`
+}
+
+// DeleteSymbol
+type DeleteSymbolReq struct {
+	Symbol string
 }

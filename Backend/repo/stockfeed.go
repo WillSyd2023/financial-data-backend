@@ -4,7 +4,6 @@ import (
 	"Backend/dto"
 	"database/sql"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -39,8 +38,6 @@ func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (
 
 func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRes) error {
 	// Insert new symbol and last-refreshed data
-	log.Println(stockData.MetaData.LastRefreshed.Format(time.RFC3339))
-
 	var id int
 	err := rp.db.QueryRowContext(
 		ctx,
@@ -48,8 +45,6 @@ func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRe
 		stockData.MetaData.Symbol,
 		stockData.MetaData.LastRefreshed.Format(time.RFC3339),
 	).Scan(&id)
-	log.Println("HERE")
-	log.Println(err)
 	if err != nil {
 		return err
 	}
@@ -80,6 +75,5 @@ func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRe
 
 	// Insert data
 	_, err = rp.db.ExecContext(ctx, query, data...)
-	log.Println(err)
 	return err
 }

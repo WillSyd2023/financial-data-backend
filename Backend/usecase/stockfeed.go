@@ -213,7 +213,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	metaData.LastRefreshed = t
 
 	// (there is a default size of stocks to be recorded per symbol)
-	stockData.MetaData = metaData
+	stockData.MetaData = &metaData
 
 	// 2. collect first constant.DefaultStocksNum days of time series data
 	earliestDate := metaData.LastRefreshed.AddDate(0, 0,
