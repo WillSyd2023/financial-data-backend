@@ -28,6 +28,7 @@ type UsecaseItf interface {
 	// Main methods
 	GetSymbols(*gin.Context, *dto.GetSymbolsReq) (*dto.AlphaSymbolsRes, error)
 	CollectSymbol(*gin.Context, *dto.CollectSymbolReq) (*dto.StockDataRes, error)
+	DeleteSymbol(*gin.Context, *dto.DeleteSymbolReq) error
 }
 
 type Usecase struct {
@@ -254,4 +255,10 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	}
 
 	return &stockData, nil
+}
+
+func (uc *Usecase) DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) error {
+	// repo
+	err := uc.rp.DeleteSymbol(ctx, req)
+	return err
 }
