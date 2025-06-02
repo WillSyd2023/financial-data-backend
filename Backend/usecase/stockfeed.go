@@ -213,12 +213,11 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	metaData.LastRefreshed = t
 
 	// (there is a default size of stocks to be recorded per symbol)
-	metaData.Size = constant.DefaultStocksNum
-
 	stockData.MetaData = metaData
 
 	// 2. collect first constant.DefaultStocksNum days of time series data
-	earliestDate := metaData.LastRefreshed.AddDate(0, 0, -metaData.Size+1)
+	earliestDate := metaData.LastRefreshed.AddDate(0, 0,
+		-constant.DefaultStocksNum+1)
 	earliestDate = uc.PrevWeekend(earliestDate)
 	for key, value := range alphaData.TimeSeries {
 		keyDate, err := time.Parse(constant.LayoutISO, key)
@@ -237,6 +236,9 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 			stockData.TimeSeries = append(stockData.TimeSeries, *ohlcv)
 		}
 	}
+
+	// - figure out number of time series data kept
+	metaData.Size = len(stockData.TimeSeries)
 
 	// 3. sort the kept time series data
 	sort.SliceStable(stockData.TimeSeries, func(i, j int) bool {
