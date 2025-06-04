@@ -23,6 +23,8 @@ type UsecaseItf interface {
 	// Helper methods
 	GetUnexpectedInfo([]byte) error
 	PrevWeekend(t time.Time) time.Time
+	NextWeekday(t time.Time) time.Time
+	NextFriday(t time.Time) time.Time
 	ParseOHLCV(*gin.Context, *map[string]string) (*dto.DailyOHLCVRes, error)
 
 	// Main methods
@@ -75,6 +77,26 @@ func (uc *Usecase) PrevWeekend(t time.Time) time.Time {
 			return t
 		}
 		t = t.AddDate(0, 0, -1)
+	}
+}
+
+func (uc *Usecase) NextWeekday(t time.Time) time.Time {
+	for {
+		weekday := t.Weekday()
+		if weekday != time.Saturday && weekday != time.Sunday {
+			return t
+		}
+		t = t.AddDate(0, 0, 1)
+	}
+}
+
+func (uc *Usecase) NextFriday(t time.Time) time.Time {
+	for {
+		weekday := t.Weekday()
+		if weekday == time.Friday {
+			return t
+		}
+		t = t.AddDate(0, 0, 1)
 	}
 }
 
@@ -254,6 +276,8 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	if err != nil {
 		return nil, err
 	}
+
+	// Processing to divide time series to weeks for presentation
 
 	return &stockData, nil
 }
