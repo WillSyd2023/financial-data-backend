@@ -6,6 +6,24 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// General use containers for stock data
+type DailyOHLCVRes struct {
+	Day    time.Time                  `json:"day"`
+	OHLC   map[string]decimal.Decimal `json:"ohlc"`
+	Volume int                        `json:"volume"`
+}
+
+type WeekRes struct {
+	Monday    time.Time       `json:"monday"`
+	Friday    time.Time       `json:"friday"`
+	DailyData []DailyOHLCVRes `json:"daily_data"`
+}
+
+type StockDataRes struct {
+	MetaData *CollectSymbolMeta `json:"meta_data"`
+	Weeks    []*WeekRes         `json:"weeks_covered"`
+}
+
 // GetSymbols
 type GetSymbolsReq struct {
 	Prefix string
@@ -32,24 +50,9 @@ type CollectSymbolMeta struct {
 	Size          int       `json:"size"`
 }
 
-type DailyOHLCVRes struct {
-	Day    time.Time                  `json:"day"`
-	OHLC   map[string]decimal.Decimal `json:"ohlc"`
-	Volume int                        `json:"volume"`
-}
-
-type WeekRes struct {
-	Monday    time.Time       `json:"monday"`
-	Friday    time.Time       `json:"friday"`
-	DailyData []DailyOHLCVRes `json:"daily_data"`
-}
-
-type StockDataRes struct {
-	MetaData *CollectSymbolMeta `json:"meta_data"`
-	Weeks    []*WeekRes         `json:"weeks_covered"`
-}
-
 // DeleteSymbol
 type DeleteSymbolReq struct {
 	Symbol string
 }
+
+//
