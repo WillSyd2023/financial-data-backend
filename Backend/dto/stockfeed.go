@@ -19,6 +19,11 @@ type DailyOHLCVRes struct {
 	Volume int                        `json:"volume"`
 }
 
+type DataPerSymbol struct {
+	MetaData   *SymbolDataMeta
+	TimeSeries []DailyOHLCVRes
+}
+
 type WeekRes struct {
 	Monday    time.Time       `json:"monday"`
 	Friday    time.Time       `json:"friday"`

@@ -234,7 +234,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 
 	// Process data from API:
 	var stockData dto.StockDataRes
-	var metaData dto.CollectSymbolMeta
+	var metaData dto.SymbolDataMeta
 
 	// 1. collect metadata
 	metaData.Symbol = alphaMeta.Symbol
@@ -282,7 +282,8 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	})
 
 	// Insert data
-	err = uc.rp.InsertNewSymbolData(ctx, &stockData, timeSeries)
+	err = uc.rp.InsertNewSymbolData(ctx, &dto.DataPerSymbol{
+		MetaData: &metaData, TimeSeries: timeSeries})
 	if err != nil {
 		return nil, err
 	}

@@ -12,7 +12,7 @@ import (
 
 type RepoItf interface {
 	CheckSymbolExists(*gin.Context, *dto.CollectSymbolReq) (bool, error)
-	InsertNewSymbolData(*gin.Context, *dto.StockDataRes, []dto.DailyOHLCVRes) error
+	InsertNewSymbolData(*gin.Context, *dto.DataPerSymbol) error
 	DeleteSymbol(*gin.Context, *dto.DeleteSymbolReq) error
 	StoredData(*gin.Context) ([]*dto.StockDataRes, error)
 }
@@ -39,26 +39,26 @@ func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (
 	return exists, nil
 }
 
-func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRes, timeSeries []dto.DailyOHLCVRes) error {
+func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, data *dto.DataPerSymbol) error {
 	// Insert new symbol and last-refreshed data
 	var id int
 	err := rp.db.QueryRowContext(
 		ctx,
 		"INSERT INTO symbols (symbol, last_refreshed) VALUES ($1, $2) RETURNING symbol_id",
-		stockData.MetaData.Symbol,
-		stockData.MetaData.LastRefreshed.Format(time.RFC3339),
+		data.MetaData.Symbol,
+		data.MetaData.LastRefreshed.Format(time.RFC3339),
 	).Scan(&id)
 	if err != nil {
 		return err
 	}
 
 	// Data to insert and numbering on SQL code
-	data := make([]any, 0)
+	timeSeries := make([]any, 0)
 	pos := 1
 	query := "INSERT INTO ohlcv_per_day " +
 		"(record_day, open_price, high_price, low_price, close_price, volume, symbol_id) " +
 		"VALUES "
-	for i, ohlcv := range timeSeries {
+	for i, ohlcv := range data.TimeSeries {
 		// Comma for SQL syntax
 		if i != 0 {
 			query += ", "
@@ -71,13 +71,13 @@ func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, stockData *dto.StockDataRe
 		pos += 7
 
 		// Data corresponding to numbering
-		data = append(data,
+		timeSeries = append(timeSeries,
 			ohlcv.Day.Format(time.RFC3339), ohlcv.OHLC["open"], ohlcv.OHLC["high"], ohlcv.OHLC["low"],
 			ohlcv.OHLC["close"], ohlcv.Volume, id)
 	}
 
 	// Insert data
-	_, err = rp.db.ExecContext(ctx, query, data...)
+	_, err = rp.db.ExecContext(ctx, query, timeSeries...)
 	return err
 }
 
@@ -117,5 +117,9 @@ func (rp *Repo) StoredData(ctx *gin.Context) ([]*dto.StockDataRes, error) {
 
 	// Retrieve data from every available symbol
 	data := make([]*dto.StockDataRes, 0)
+	for _, symbol := range symbols {
+
+	}
+
 	return data, nil
 }
