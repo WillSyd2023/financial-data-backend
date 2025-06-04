@@ -22,9 +22,10 @@ import (
 type UsecaseItf interface {
 	// Helper methods
 	GetUnexpectedInfo([]byte) error
-	PrevWeekend(t time.Time) time.Time
-	NextWeekday(t time.Time) time.Time
-	NextFriday(t time.Time) time.Time
+	PrevWeekend(time.Time) time.Time
+	NextMonday(time.Time) time.Time
+	NextFriday(time.Time) time.Time
+	NextWeek(time.Time) *dto.WeekRes
 	ParseOHLCV(*gin.Context, *map[string]string) (*dto.DailyOHLCVRes, error)
 
 	// Main methods
@@ -80,10 +81,10 @@ func (uc *Usecase) PrevWeekend(t time.Time) time.Time {
 	}
 }
 
-func (uc *Usecase) NextWeekday(t time.Time) time.Time {
+func (uc *Usecase) NextMonday(t time.Time) time.Time {
 	for {
 		weekday := t.Weekday()
-		if weekday != time.Saturday && weekday != time.Sunday {
+		if weekday == time.Monday {
 			return t
 		}
 		t = t.AddDate(0, 0, 1)
@@ -98,6 +99,14 @@ func (uc *Usecase) NextFriday(t time.Time) time.Time {
 		}
 		t = t.AddDate(0, 0, 1)
 	}
+}
+
+func (uc *Usecase) NextWeek(t time.Time) *dto.WeekRes {
+	week := &dto.WeekRes{}
+	week.Monday = uc.NextMonday(t)
+	week.Friday = uc.NextFriday(week.Monday)
+	week.DailyData = make([]dto.DailyOHLCVRes, 0)
+	return week
 }
 
 func (uc *Usecase) ParseOHLCV(ctx *gin.Context, timeSeries *map[string]string) (*dto.DailyOHLCVRes, error) {
@@ -239,9 +248,9 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	stockData.MetaData = &metaData
 
 	// 2. collect first constant.DefaultStocksNum days of time series data
-	earliestDate := metaData.LastRefreshed.AddDate(0, 0,
+	date := metaData.LastRefreshed.AddDate(0, 0,
 		-constant.DefaultStocksNum+1)
-	earliestDate = uc.PrevWeekend(earliestDate)
+	date = uc.PrevWeekend(date)
 	timeSeries := make([]dto.DailyOHLCVRes, 0)
 	for key, value := range alphaData.TimeSeries {
 		keyDate, err := time.Parse(constant.LayoutISO, key)
@@ -249,7 +258,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 			return nil, constant.ErrAlphaParseBody(err.Error())
 		}
 
-		if !keyDate.Before(earliestDate) {
+		if !keyDate.Before(date) {
 
 			ohlcv, err := uc.ParseOHLCV(ctx, &value)
 
@@ -278,6 +287,18 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	}
 
 	// Processing to divide time series to weeks for presentation
+	var weekIndex int
+	stockData.Weeks = append(stockData.Weeks, uc.NextWeek(date))
+	thisWeek := stockData.Weeks[weekIndex]
+	for _, day := range timeSeries {
+		if day.Day.After(thisWeek.Friday) {
+			stockData.Weeks = append(stockData.Weeks, uc.NextWeek(thisWeek.Friday))
+			weekIndex++
+			thisWeek = stockData.Weeks[weekIndex]
+		}
+
+		thisWeek.DailyData = append(thisWeek.DailyData, day)
+	}
 
 	return &stockData, nil
 }

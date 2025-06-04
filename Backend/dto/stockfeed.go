@@ -46,7 +46,7 @@ type WeekRes struct {
 
 type StockDataRes struct {
 	MetaData *CollectSymbolMeta `json:"meta_data"`
-	Weeks    []WeekRes          `json:"weeks_covered"`
+	Weeks    []*WeekRes         `json:"weeks_covered"`
 }
 
 // DeleteSymbol
