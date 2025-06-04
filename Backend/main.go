@@ -42,6 +42,10 @@ func main() {
 	// Delete a recorded symbol and its data
 	r.DELETE("/data/:symbol", hd.DeleteSymbol)
 
+	// Get stored data
+	// Used when opening frontend
+	r.GET("/data", hd.StoredData)
+
 	// Run server
 	srv := &http.Server{
 		Addr:    os.Getenv("SERVER_PORT"),

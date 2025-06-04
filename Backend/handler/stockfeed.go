@@ -13,6 +13,7 @@ type HandlerItf interface {
 	GetSymbols(*gin.Context)
 	CollectSymbol(*gin.Context)
 	DeleteSymbol(*gin.Context)
+	StoredData(*gin.Context)
 }
 
 type Handler struct {
@@ -113,4 +114,8 @@ func (hd *Handler) DeleteSymbol(ctx *gin.Context) {
 			"error":   nil,
 			"data":    nil,
 		})
+}
+
+func (hd *Handler) StoredData(*gin.Context) {
+
 }
