@@ -12,7 +12,8 @@ import (
 type RepoItf interface {
 	CheckSymbolExists(*gin.Context, *dto.CollectSymbolReq) (bool, error)
 	InsertNewSymbolData(*gin.Context, *dto.StockDataRes, []dto.DailyOHLCVRes) error
-	DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) error
+	DeleteSymbol(*gin.Context, *dto.DeleteSymbolReq) error
+	StoredData(*gin.Context) ([]*dto.StockDataRes, error)
 }
 
 type Repo struct {
@@ -89,4 +90,7 @@ func (rp *Repo) DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) error {
 		}
 	}
 	return err
+}
+
+func (rp *Repo) StoredData(ctx *gin.Context) ([]*dto.StockDataRes, error) {
 }

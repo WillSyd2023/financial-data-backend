@@ -116,6 +116,18 @@ func (hd *Handler) DeleteSymbol(ctx *gin.Context) {
 		})
 }
 
-func (hd *Handler) StoredData(*gin.Context) {
+func (hd *Handler) StoredData(ctx *gin.Context) {
+	// usecase
+	data, err := hd.uc.StoredData(ctx)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
 
+	ctx.JSON(http.StatusOK,
+		gin.H{
+			"message": nil,
+			"error":   nil,
+			"data":    data,
+		})
 }
