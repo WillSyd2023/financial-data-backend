@@ -54,5 +54,3 @@ type CollectSymbolMeta struct {
 type DeleteSymbolReq struct {
 	Symbol string
 }
-
-//
