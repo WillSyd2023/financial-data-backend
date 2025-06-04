@@ -7,6 +7,12 @@ import (
 )
 
 // General use containers for stock data
+type SymbolDataMeta struct {
+	Symbol        string    `json:"symbol"`
+	LastRefreshed time.Time `json:"last_refreshed"`
+	Size          int       `json:"size"`
+}
+
 type DailyOHLCVRes struct {
 	Day    time.Time                  `json:"day"`
 	OHLC   map[string]decimal.Decimal `json:"ohlc"`
@@ -20,8 +26,8 @@ type WeekRes struct {
 }
 
 type StockDataRes struct {
-	MetaData *CollectSymbolMeta `json:"meta_data"`
-	Weeks    []*WeekRes         `json:"weeks_covered"`
+	MetaData *SymbolDataMeta `json:"meta_data"`
+	Weeks    []*WeekRes      `json:"weeks_covered"`
 }
 
 // GetSymbols
@@ -42,12 +48,6 @@ type GetSymbolsRes struct {
 // CollectSymbol
 type CollectSymbolReq struct {
 	Symbol string
-}
-
-type CollectSymbolMeta struct {
-	Symbol        string    `json:"symbol"`
-	LastRefreshed time.Time `json:"last_refreshed"`
-	Size          int       `json:"size"`
 }
 
 // DeleteSymbol

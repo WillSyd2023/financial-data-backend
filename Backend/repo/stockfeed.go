@@ -2,6 +2,7 @@ package repo
 
 import (
 	"Backend/dto"
+	"Backend/entity"
 	"database/sql"
 	"fmt"
 	"time"
@@ -93,4 +94,28 @@ func (rp *Repo) DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) error {
 }
 
 func (rp *Repo) StoredData(ctx *gin.Context) ([]*dto.StockDataRes, error) {
+	// Retrieve all collected symbols and their IDs
+	symbolRows, err := rp.db.QueryContext(
+		ctx,
+		"SELECT symbol_id, symbol, last_refreshed FROM symbols",
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer symbolRows.Close()
+
+	symbols := make([]entity.Symbol, 0)
+	for symbolRows.Next() {
+		symbol := entity.Symbol{}
+		err = symbolRows.Scan(&symbol.Id,
+			&symbol.Name, &symbol.LastRefreshed)
+		if err != nil {
+			return nil, err
+		}
+		symbols = append(symbols, symbol)
+	}
+
+	// Retrieve data from every available symbol
+	data := make([]*dto.StockDataRes, 0)
+	return data, nil
 }
