@@ -7,7 +7,6 @@ import (
 	"Backend/util"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"sort"
@@ -235,7 +234,6 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 
 	// Check for e.g. API rate limit is exceeded
 	err = uc.GetUnexpectedInfo(body)
-	log.Println(err)
 	if err != nil {
 		return nil, err
 	}
