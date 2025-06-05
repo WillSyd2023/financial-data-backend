@@ -312,5 +312,7 @@ func (uc *Usecase) DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) erro
 
 func (uc *Usecase) StoredData(ctx *gin.Context) ([]*dto.StockDataRes, error) {
 	// repo
-	return uc.rp.StoredData(ctx)
+	// uc.rp.StoredData(ctx)
+
+	return nil, nil
 }

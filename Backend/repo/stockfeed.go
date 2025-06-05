@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 )
 
 type RepoItf interface {
 	CheckSymbolExists(*gin.Context, *dto.CollectSymbolReq) (bool, error)
 	InsertNewSymbolData(*gin.Context, *dto.DataPerSymbol) error
 	DeleteSymbol(*gin.Context, *dto.DeleteSymbolReq) error
-	StoredData(*gin.Context) ([]*dto.StockDataRes, error)
+	StoredData(*gin.Context) ([]dto.DataPerSymbol, error)
 }
 
 type Repo struct {
@@ -92,16 +93,51 @@ func (rp *Repo) DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) error {
 	return err
 }
 
-func (rp *Repo) StoredData(ctx *gin.Context) ([]*dto.StockDataRes, error) {
+func (rp *Repo) StoredData(ctx *gin.Context) ([]dto.DataPerSymbol, error) {
 	query := "SELECT " +
 		"symbol, last_refreshed, record_day, open_price, high_price, low_price, close_price, volume " +
 		"FROM symbols INNER JOIN ohlcv_per_day ON symbols.symbol_id = ohlcv_per_day.symbol_id " +
-		"ORDER BY symbol, record_day ASC;"
+		"ORDER BY symbol, record_day ASC"
 	rows, err := rp.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+
+	data := make([]dto.DataPerSymbol, 0)
+	ix := -1
+	for rows.Next() {
+		meta := dto.SymbolDataMeta{}
+		ohlcv := dto.DailyOHLCVRes{}
+		var open, high, low, close decimal.Decimal
+		if err := rows.Scan(
+			&meta.Symbol, &meta.LastRefreshed, &ohlcv.Day,
+			&open, &high, &low, &close,
+			&ohlcv.Volume,
+		); err == nil {
+			return nil, err
+		}
+		ohlcv.OHLC = map[string]decimal.Decimal{
+			"open":  open,
+			"high":  high,
+			"low":   low,
+			"close": close,
+		}
+
+		if len(data) == 0 ||
+			data[ix].MetaData.Symbol != meta.Symbol {
+			ix++
+			data = append(data, dto.DataPerSymbol{
+				MetaData:   &meta,
+				TimeSeries: []dto.DailyOHLCVRes{ohlcv},
+			})
+		} else {
+			data[ix].TimeSeries = append(
+				data[ix].TimeSeries,
+				ohlcv,
+			)
+		}
+	}
 
 	return nil, nil
 }
