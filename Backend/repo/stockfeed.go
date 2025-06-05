@@ -114,7 +114,7 @@ func (rp *Repo) StoredData(ctx *gin.Context) ([]dto.DataPerSymbol, error) {
 			&meta.Symbol, &meta.LastRefreshed, &ohlcv.Day,
 			&open, &high, &low, &close,
 			&ohlcv.Volume,
-		); err == nil {
+		); err != nil {
 			return nil, err
 		}
 		ohlcv.OHLC = map[string]decimal.Decimal{

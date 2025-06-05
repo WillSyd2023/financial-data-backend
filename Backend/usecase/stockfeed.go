@@ -315,7 +315,16 @@ func (uc *Usecase) DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) erro
 
 func (uc *Usecase) StoredData(ctx *gin.Context) ([]*dto.StockDataRes, error) {
 	// repo
-	// uc.rp.StoredData(ctx)
+	dataPerSymbol, err := uc.rp.StoredData(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	// assemble data for presentation
+	stockData := make([]*dto.StockDataRes, 0)
+	for _, datum := range dataPerSymbol {
+		stockData = append(stockData, uc.BuildStockData(&datum))
+	}
+
+	return stockData, nil
 }
