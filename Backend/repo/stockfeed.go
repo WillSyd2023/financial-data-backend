@@ -141,5 +141,11 @@ func (rp *Repo) StoredData(ctx *gin.Context) ([]dto.DataPerSymbol, error) {
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
+
+	// Remember to figure out number of data for each stock
+	for _, datum := range data {
+		datum.MetaData.Size = len(datum.TimeSeries)
+	}
+
 	return data, nil
 }
