@@ -93,5 +93,15 @@ func (rp *Repo) DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) error {
 }
 
 func (rp *Repo) StoredData(ctx *gin.Context) ([]*dto.StockDataRes, error) {
+	query := "SELECT " +
+		"symbol, last_refreshed, record_day, open_price, high_price, low_price, close_price, volume " +
+		"FROM symbols INNER JOIN ohlcv_per_day ON symbols.symbol_id = ohlcv_per_day.symbol_id " +
+		"ORDER BY symbol, record_day ASC;"
+	rows, err := rp.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
 	return nil, nil
 }

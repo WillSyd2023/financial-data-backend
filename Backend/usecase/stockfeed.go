@@ -156,7 +156,7 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 		"query?function=SYMBOL_SEARCH"+
 		"&keywords=%s&apikey=%s",
 		req.Prefix,
-		"demo",
+		os.Getenv("ALPHA_VANTAGE_API_KEY"),
 	)
 
 	response, err := uc.hc.Get(url)
@@ -201,7 +201,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 		"query?function=TIME_SERIES_DAILY"+
 		"&symbol=%s&apikey=%s",
 		req.Symbol,
-		"demo",
+		os.Getenv("ALPHA_VANTAGE_API_KEY"),
 	)
 
 	response, err := uc.hc.Get(url)
