@@ -138,6 +138,8 @@ func (rp *Repo) StoredData(ctx *gin.Context) ([]dto.DataPerSymbol, error) {
 			)
 		}
 	}
-
-	return nil, nil
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return data, nil
 }
