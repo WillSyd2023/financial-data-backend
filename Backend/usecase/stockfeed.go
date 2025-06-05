@@ -22,11 +22,10 @@ import (
 type UsecaseItf interface {
 	// Helper methods
 	GetUnexpectedInfo([]byte) error
-	PrevWeekend(time.Time) time.Time
-	NextMonday(time.Time) time.Time
-	NextFriday(time.Time) time.Time
-	NextWeek(time.Time) *dto.WeekRes
 	ParseOHLCV(*gin.Context, *map[string]string) (*dto.DailyOHLCVRes, error)
+	PrevWeekend(time.Time) time.Time
+	NextWeek(time.Time) *dto.WeekRes
+	BuildStockData(*dto.DataPerSymbol) *dto.StockDataRes
 
 	// Main methods
 	GetSymbols(*gin.Context, *dto.GetSymbolsReq) (*dto.AlphaSymbolsRes, error)
@@ -72,44 +71,6 @@ func (uc *Usecase) GetUnexpectedInfo(body []byte) error {
 	return constant.NewCError(http.StatusBadGateway, info.Info)
 }
 
-func (uc *Usecase) PrevWeekend(t time.Time) time.Time {
-	for {
-		weekday := t.Weekday()
-		if weekday == time.Saturday || weekday == time.Sunday {
-			return t
-		}
-		t = t.AddDate(0, 0, -1)
-	}
-}
-
-func (uc *Usecase) NextMonday(t time.Time) time.Time {
-	for {
-		weekday := t.Weekday()
-		if weekday == time.Monday {
-			return t
-		}
-		t = t.AddDate(0, 0, 1)
-	}
-}
-
-func (uc *Usecase) NextFriday(t time.Time) time.Time {
-	for {
-		weekday := t.Weekday()
-		if weekday == time.Friday {
-			return t
-		}
-		t = t.AddDate(0, 0, 1)
-	}
-}
-
-func (uc *Usecase) NextWeek(t time.Time) *dto.WeekRes {
-	week := &dto.WeekRes{}
-	week.Monday = uc.NextMonday(t)
-	week.Friday = uc.NextFriday(week.Monday)
-	week.DailyData = make([]dto.DailyOHLCVRes, 0)
-	return week
-}
-
 func (uc *Usecase) ParseOHLCV(ctx *gin.Context, timeSeries *map[string]string) (*dto.DailyOHLCVRes, error) {
 	TimeSeries := *timeSeries
 	var ohlcv dto.DailyOHLCVRes
@@ -148,6 +109,62 @@ func (uc *Usecase) ParseOHLCV(ctx *gin.Context, timeSeries *map[string]string) (
 	ohlcv.Volume = vol
 
 	return &ohlcv, nil
+}
+
+func (uc *Usecase) PrevWeekend(t time.Time) time.Time {
+	for {
+		weekday := t.Weekday()
+		if weekday == time.Saturday || weekday == time.Sunday {
+			return t
+		}
+		t = t.AddDate(0, 0, -1)
+	}
+}
+
+func (uc *Usecase) NextWeek(t time.Time) *dto.WeekRes {
+	week := &dto.WeekRes{}
+	t1 := t
+	for {
+		weekday := t1.Weekday()
+		if weekday == time.Monday {
+			week.Monday = t1
+			break
+		}
+		t1 = t1.AddDate(0, 0, 1)
+	}
+	t2 := week.Monday
+	for {
+		weekday := t2.Weekday()
+		if weekday == time.Friday {
+			week.Friday = t2
+			break
+		}
+		t2 = t2.AddDate(0, 0, 1)
+	}
+	week.DailyData = make([]dto.DailyOHLCVRes, 0)
+	return week
+}
+
+func (uc *Usecase) BuildStockData(data *dto.DataPerSymbol) *dto.StockDataRes {
+	var stockData dto.StockDataRes
+	stockData.MetaData = data.MetaData
+
+	// Processing to divide time series to weeks for presentation
+	var weekIndex int
+	date := data.TimeSeries[0].Day
+	date = uc.PrevWeekend(date)
+	stockData.Weeks = append(stockData.Weeks, uc.NextWeek(date))
+	thisWeek := stockData.Weeks[weekIndex]
+	for _, day := range data.TimeSeries {
+		if day.Day.After(thisWeek.Friday) {
+			stockData.Weeks = append(stockData.Weeks, uc.NextWeek(thisWeek.Friday))
+			weekIndex++
+			thisWeek = stockData.Weeks[weekIndex]
+		}
+
+		thisWeek.DailyData = append(thisWeek.DailyData, day)
+	}
+	return &stockData
 }
 
 func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.AlphaSymbolsRes, error) {
@@ -233,10 +250,9 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	alphaMeta := alphaData.MetaData
 
 	// Process data from API:
-	var stockData dto.StockDataRes
 	var metaData dto.SymbolDataMeta
 
-	// 1. collect metadata
+	// 1. collect some metadata
 	metaData.Symbol = alphaMeta.Symbol
 
 	t, err := time.Parse(constant.LayoutISO, alphaMeta.LastRefreshed)
@@ -244,9 +260,6 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 		return nil, constant.ErrAlphaParseBody(err.Error())
 	}
 	metaData.LastRefreshed = t
-
-	// (there is a default size of stocks to be recorded per symbol)
-	stockData.MetaData = &metaData
 
 	// 2. collect first constant.DefaultStocksNum days of time series data
 	date := metaData.LastRefreshed.AddDate(0, 0,
@@ -281,28 +294,18 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 		)
 	})
 
+	dataForSym := &dto.DataPerSymbol{
+		MetaData: &metaData, TimeSeries: timeSeries}
+
 	// Insert data
-	err = uc.rp.InsertNewSymbolData(ctx, &dto.DataPerSymbol{
-		MetaData: &metaData, TimeSeries: timeSeries})
+	err = uc.rp.InsertNewSymbolData(ctx, dataForSym)
 	if err != nil {
 		return nil, err
 	}
 
 	// Processing to divide time series to weeks for presentation
-	var weekIndex int
-	stockData.Weeks = append(stockData.Weeks, uc.NextWeek(date))
-	thisWeek := stockData.Weeks[weekIndex]
-	for _, day := range timeSeries {
-		if day.Day.After(thisWeek.Friday) {
-			stockData.Weeks = append(stockData.Weeks, uc.NextWeek(thisWeek.Friday))
-			weekIndex++
-			thisWeek = stockData.Weeks[weekIndex]
-		}
-
-		thisWeek.DailyData = append(thisWeek.DailyData, day)
-	}
-
-	return &stockData, nil
+	// just before returning
+	return uc.BuildStockData(dataForSym), nil
 }
 
 func (uc *Usecase) DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) error {
