@@ -57,7 +57,7 @@ func TestMiddlewareError(t *testing.T) {
 				`"data":null}`,
 		},
 		{
-			name: "custom error",
+			name: "custom error 1",
 			handle: func(c *gin.Context) {
 				c.Error(constant.CustomError{
 					StatusCode: http.StatusBadRequest,
@@ -65,6 +65,18 @@ func TestMiddlewareError(t *testing.T) {
 				})
 			},
 			expectedStatus: http.StatusBadRequest,
+			expectedBody: `{"success":false,` +
+				`"error":"custom error message","data":null}`,
+		},
+		{
+			name: "custom error 2",
+			handle: func(c *gin.Context) {
+				c.Error(constant.CustomError{
+					StatusCode: http.StatusBadGateway,
+					Message:    "custom error message",
+				})
+			},
+			expectedStatus: http.StatusBadGateway,
 			expectedBody: `{"success":false,` +
 				`"error":"custom error message","data":null}`,
 		},
