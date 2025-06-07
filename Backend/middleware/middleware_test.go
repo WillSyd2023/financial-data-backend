@@ -35,7 +35,7 @@ func TestMiddlewareError(t *testing.T) {
 			expectedBody:   `{"success":false,"error":[],"data":null}`,
 		},
 		{
-			name: "validation errors - non-empty",
+			name: "validation errors - non-empty 1",
 			handle: func(c *gin.Context) {
 				type request struct {
 					Field string `json:"field" binding:"required"`
@@ -53,6 +53,32 @@ func TestMiddlewareError(t *testing.T) {
 				`"error":[{"field":"Field",` +
 				`"message":"` +
 				`Key: 'request.Field' Error:Field validation for 'Field' failed on the 'required' tag` +
+				`"}],` +
+				`"data":null}`,
+		},
+		{
+			name: "validation errors - non-empty 2",
+			handle: func(c *gin.Context) {
+				type request struct {
+					Field string `json:"field" binding:"required"`
+					Var   string `json:"variable" binding:"required"`
+				}
+
+				var r request
+				errorArg := c.ShouldBindQuery(&r)
+
+				if errorArg != nil {
+					c.Error(errorArg)
+				}
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody: `{"success":false,` +
+				`"error":[{"field":"Field",` +
+				`"message":"` +
+				`Key: 'request.Field' Error:Field validation for 'Field' failed on the 'required' tag` +
+				`"},{"field":"Var",` +
+				`"message":"` +
+				`Key: 'request.Var' Error:Field validation for 'Var' failed on the 'required' tag` +
 				`"}],` +
 				`"data":null}`,
 		},
