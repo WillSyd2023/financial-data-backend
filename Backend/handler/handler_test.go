@@ -139,6 +139,16 @@ func TestIntegratedHandlerGetSymbols(t *testing.T) {
 		expectedBody   string
 	}{
 		{
+			name: "no query parameter provided",
+			link: "/symbols",
+			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
+				return new(mocks.UsecaseItf)
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody: `{"success":false,` +
+				`"error":"please provide keywords",` +
+				`"data":null}`},
+		{
 			name: "usecase returns error",
 			link: "/symbols?keywords=BA",
 			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
