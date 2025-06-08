@@ -1,7 +1,12 @@
 package handler
 
 import (
+	"Backend/constant"
+	"Backend/dto"
+	mocks "Backend/mocks/usecase"
 	"Backend/usecase"
+	"errors"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -9,20 +14,104 @@ import (
 	"github.com/go-playground/assert"
 )
 
-func UnitTestHandlerGetSymbols(t *testing.T) {
+func TestUnitHandlerGetSymbols(t *testing.T) {
 	testCases := []struct {
-		name          string
-		ucSetup       func(*gin.Context) usecase.UsecaseItf
-		expectedError func(*gin.Context)
-		expectedBody  string
-	}{}
+		name           string
+		link           string
+		ucSetup        func(*gin.Context) usecase.UsecaseItf
+		expectedStatus int
+		expectedBody   string
+		expectedError  func(*gin.Context)
+	}{
+		{
+			name: "no query parameter provided",
+			link: "/symbols",
+			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
+				return new(mocks.UsecaseItf)
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody:   "",
+			expectedError: func(ctx *gin.Context) {
+				assert.Equal(t, len(ctx.Errors), 1)
+
+				var ce constant.CustomError
+				assert.Equal(t, errors.As(ctx.Errors[0], &ce), true)
+				assert.Equal(t, errors.Is(ce, constant.ErrNoKeywords), true)
+			},
+		},
+		{
+			name: "usecase returns error",
+			link: "/symbols?keywords=BA",
+			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
+				mock := new(mocks.UsecaseItf)
+
+				// input to usecase
+				var req dto.GetSymbolsReq
+				req.Prefix = "BA"
+
+				// usecase mechanism
+				mock.On("GetSymbols", ctx, &req).Return(nil, constant.ErrAPIExceed)
+
+				return mock
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody:   "",
+			expectedError: func(ctx *gin.Context) {
+				assert.Equal(t, len(ctx.Errors), 1)
+
+				var ce constant.CustomError
+				assert.Equal(t, errors.As(ctx.Errors[0], &ce), true)
+				assert.Equal(t, errors.Is(ce, constant.ErrAPIExceed), true)
+			},
+		},
+		{
+			name: "handling successful usecase outcome",
+			link: "/symbols?keywords=BA",
+			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
+				mock := new(mocks.UsecaseItf)
+
+				// input to usecase
+				var req dto.GetSymbolsReq
+				req.Prefix = "BA"
+
+				// output from usecase
+				var symbols dto.AlphaSymbolsRes
+				bestMatches := []dto.AlphaSymbolRes{
+					{
+						Symbol: "BA",
+						Name:   "Boeing Company",
+						Region: "United States",
+					},
+					{
+						Symbol: "BA.LON",
+						Name:   "BAE Systems plc",
+						Region: "United Kingdom",
+					},
+				}
+				symbols.BestMatches = bestMatches
+
+				// usecase mechanism
+				mock.On("GetSymbols", ctx, &req).Return(&symbols, nil)
+
+				return mock
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody: `{"data":{"best_matches":[` +
+				`{"symbol":"BA","name":"Boeing Company","region":"United States"},` +
+				`{"symbol":"BA.LON","name":"BAE Systems plc","region":"United Kingdom"}` +
+				`]},"error":null,"message":null}`,
+			expectedError: func(ctx *gin.Context) {
+				assert.Equal(t, len(ctx.Errors), 0)
+			},
+		},
+	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			//given
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
-			r := httptest.NewRequest("GET", "/symbols", nil)
+			r := httptest.NewRequest("GET", tt.link, nil)
 			c.Request = r
 
 			hd := NewHandler(tt.ucSetup(c))
@@ -31,6 +120,7 @@ func UnitTestHandlerGetSymbols(t *testing.T) {
 			hd.GetSymbols(c)
 
 			//then
+			assert.Equal(t, tt.expectedStatus, w.Code)
 			assert.Equal(t, tt.expectedBody, w.Body.String())
 			tt.expectedError(c)
 		})
