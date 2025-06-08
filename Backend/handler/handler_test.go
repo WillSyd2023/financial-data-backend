@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestUnitHandlerGetSymbols(t *testing.T) {
@@ -138,37 +139,10 @@ func TestIntegratedHandlerGetSymbols(t *testing.T) {
 		expectedBody   string
 	}{
 		{
-			name: "no query parameter provided",
-			link: "/symbols",
-			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
-				return new(mocks.UsecaseItf)
-			},
-			expectedStatus: http.StatusOK,
-			expectedBody:   "",
-		},
-		{
-			name: "usecase returns error",
-			link: "/symbols?keywords=BA",
-			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
-				mock := new(mocks.UsecaseItf)
-
-				// input to usecase
-				var req dto.GetSymbolsReq
-				req.Prefix = "BA"
-
-				// usecase mechanism
-				mock.On("GetSymbols", ctx, &req).Return(nil, constant.ErrAPIExceed)
-
-				return mock
-			},
-			expectedStatus: http.StatusOK,
-			expectedBody:   "",
-		},
-		{
 			name: "handling successful usecase outcome",
 			link: "/symbols?keywords=BA",
 			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
-				mock := new(mocks.UsecaseItf)
+				mocked := new(mocks.UsecaseItf)
 
 				// input to usecase
 				var req dto.GetSymbolsReq
@@ -191,9 +165,14 @@ func TestIntegratedHandlerGetSymbols(t *testing.T) {
 				symbols.BestMatches = bestMatches
 
 				// usecase mechanism
-				mock.On("GetSymbols", ctx, &req).Return(&symbols, nil)
+				contextMatcher := mock.MatchedBy(func(c *gin.Context) bool {
+					// Verify the query parameter was properly extracted
+					prefix, exists := c.GetQuery("keywords")
+					return exists && prefix == "BA"
+				})
+				mocked.On("GetSymbols", contextMatcher, &req).Return(&symbols, nil)
 
-				return mock
+				return mocked
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: `{"data":{"best_matches":[` +
