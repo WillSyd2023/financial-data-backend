@@ -133,6 +133,8 @@ func TestUnitHandlerGetSymbols(t *testing.T) {
 func TestIntegratedHandlerGetSymbols(t *testing.T) {
 	// This is the unit test, except the middleware is also used
 	// tests for output and status code
+	// This can be used to partly test that middleware works in general,
+	// regardless of handler
 	testCases := []struct {
 		name           string
 		link           string
