@@ -239,3 +239,33 @@ func TestIntegratedHandlerGetSymbols(t *testing.T) {
 		})
 	}
 }
+func TestUnitHandlerCollectSymbol(t *testing.T) {
+	testCases := []struct {
+		name           string
+		link           string
+		ucSetup        func(*gin.Context) usecase.UsecaseItf
+		expectedStatus int
+		expectedBody   string
+		expectedError  func(*gin.Context)
+	}{}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			//given
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			r := httptest.NewRequest("POST", tt.link, nil)
+			c.Request = r
+
+			hd := NewHandler(tt.ucSetup(c))
+
+			//when
+			hd.CollectSymbol(c)
+
+			//then
+			assert.Equal(t, tt.expectedStatus, w.Code)
+			assert.Equal(t, tt.expectedBody, w.Body.String())
+			tt.expectedError(c)
+		})
+	}
+}
