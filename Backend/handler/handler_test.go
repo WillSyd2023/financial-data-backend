@@ -6,6 +6,7 @@ import (
 	"Backend/middleware"
 	mocks "Backend/mocks/usecase"
 	"Backend/usecase"
+	"Backend/util"
 	"errors"
 	"log"
 	"net/http"
@@ -289,6 +290,43 @@ func TestUnitHandlerCollectSymbol(t *testing.T) {
 				assert.Equal(t, errors.As(ctx.Errors[0], &ce), true)
 				log.Println(ce)
 				assert.Equal(t, errors.Is(ce, constant.ErrAPIExceed), true)
+			},
+		},
+		{
+			name: "handling successful usecase outcome",
+			link: "/data/AAPL",
+			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
+				mock := new(mocks.UsecaseItf)
+
+				// input to usecase
+				var req dto.CollectSymbolReq
+				req.Symbol = "AAPL"
+
+				// output from usecase
+				// - whole stock data structure
+				var stockData dto.StockDataRes
+
+				// - meta data (and time setup code)
+				var meta dto.SymbolDataMeta
+				meta.Symbol = "AAPL"
+				meta.Size = 3
+
+				dateGenerator := util.NewDateGenerator("2025-06-01")
+				meta.LastRefreshed = dto.DateOnly(dateGenerator.Current())
+
+				stockData.MetaData = &meta
+
+				// -
+
+				// usecase mechanism
+				mock.On("CollectSymbol", ctx, &req).Return(&stockData, nil)
+
+				return mock
+			},
+			expectedStatus: http.StatusCreated,
+			expectedBody:   "",
+			expectedError: func(ctx *gin.Context) {
+				assert.Equal(t, len(ctx.Errors), 0)
 			},
 		},
 	}
