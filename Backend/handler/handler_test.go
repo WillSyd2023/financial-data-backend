@@ -311,12 +311,30 @@ func TestUnitHandlerCollectSymbol(t *testing.T) {
 				meta.Symbol = "AAPL"
 				meta.Size = 3
 
-				dateGenerator := util.NewDateGenerator("2025-06-01")
-				meta.LastRefreshed = dto.DateOnly(dateGenerator.Current())
+				dateGen := util.NewDateGenerator("2025-06-01")
+				meta.LastRefreshed = dto.DateOnly(dateGen.Current())
 
 				stockData.MetaData = &meta
 
-				// -
+				// - weeks
+				ohlcvGen := util.NewOHLCVGenerator(dateGen, 100, 1)
+				stockData.Weeks = []*dto.WeekRes{
+					{
+						Monday: dateGen.Next(),
+						Friday: dateGen.Next(),
+						DailyData: []dto.DailyOHLCVRes{
+							ohlcvGen.Next(),
+						},
+					},
+					{
+						Monday: dateGen.Next(),
+						Friday: dateGen.Next(),
+						DailyData: []dto.DailyOHLCVRes{
+							ohlcvGen.Next(),
+							ohlcvGen.Next(),
+						},
+					},
+				}
 
 				// usecase mechanism
 				mock.On("CollectSymbol", ctx, &req).Return(&stockData, nil)
