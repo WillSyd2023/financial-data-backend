@@ -3,7 +3,6 @@ package usecase
 import (
 	"Backend/constant"
 	"Backend/dto"
-	"Backend/entity"
 	"Backend/repo"
 	"Backend/util"
 	"encoding/json"
@@ -23,8 +22,8 @@ type UsecaseItf interface {
 	// Helper methods
 	GetUnexpectedInfo([]byte) error
 	ParseOHLCV(*gin.Context, *map[string]string) (*dto.DailyOHLCVRes, error)
-	PrevWeekend(entity.DateOnly) entity.DateOnly
-	NextWeek(entity.DateOnly) *dto.WeekRes
+	PrevWeekend(dto.DateOnly) dto.DateOnly
+	NextWeek(dto.DateOnly) *dto.WeekRes
 	BuildStockData(*dto.DataPerSymbol) *dto.StockDataRes
 
 	// Main methods
@@ -111,7 +110,7 @@ func (uc *Usecase) ParseOHLCV(ctx *gin.Context, timeSeries *map[string]string) (
 	return &ohlcv, nil
 }
 
-func (uc *Usecase) PrevWeekend(t entity.DateOnly) entity.DateOnly {
+func (uc *Usecase) PrevWeekend(t dto.DateOnly) dto.DateOnly {
 	for {
 		weekday := t.Weekday()
 		if weekday == time.Saturday || weekday == time.Sunday {
@@ -121,7 +120,7 @@ func (uc *Usecase) PrevWeekend(t entity.DateOnly) entity.DateOnly {
 	}
 }
 
-func (uc *Usecase) NextWeek(t entity.DateOnly) *dto.WeekRes {
+func (uc *Usecase) NextWeek(t dto.DateOnly) *dto.WeekRes {
 	week := &dto.WeekRes{}
 	t1 := t
 	for {
@@ -258,7 +257,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	if err != nil {
 		return nil, constant.ErrAlphaParseBody(err.Error())
 	}
-	metaData.LastRefreshed = entity.DateOnly(t)
+	metaData.LastRefreshed = dto.DateOnly(t)
 
 	// 2. collect first constant.DefaultStocksNum days of time series data
 	date := metaData.LastRefreshed.AddDate(0, 0,
@@ -279,7 +278,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 			if err != nil {
 				return nil, constant.ErrAlphaParseBody(err.Error())
 			}
-			ohlcv.Day = entity.DateOnly(keyDate)
+			ohlcv.Day = dto.DateOnly(keyDate)
 			timeSeries = append(timeSeries, *ohlcv)
 		}
 	}

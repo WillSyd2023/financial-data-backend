@@ -4,10 +4,8 @@ package mocks
 
 import (
 	dto "Backend/dto"
-	entity "Backend/entity"
 
 	gin "github.com/gin-gonic/gin"
-
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -133,7 +131,7 @@ func (_m *UsecaseItf) GetUnexpectedInfo(_a0 []byte) error {
 }
 
 // NextWeek provides a mock function with given fields: _a0
-func (_m *UsecaseItf) NextWeek(_a0 entity.DateOnly) *dto.WeekRes {
+func (_m *UsecaseItf) NextWeek(_a0 dto.DateOnly) *dto.WeekRes {
 	ret := _m.Called(_a0)
 
 	if len(ret) == 0 {
@@ -141,7 +139,7 @@ func (_m *UsecaseItf) NextWeek(_a0 entity.DateOnly) *dto.WeekRes {
 	}
 
 	var r0 *dto.WeekRes
-	if rf, ok := ret.Get(0).(func(entity.DateOnly) *dto.WeekRes); ok {
+	if rf, ok := ret.Get(0).(func(dto.DateOnly) *dto.WeekRes); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
@@ -183,18 +181,18 @@ func (_m *UsecaseItf) ParseOHLCV(_a0 *gin.Context, _a1 *map[string]string) (*dto
 }
 
 // PrevWeekend provides a mock function with given fields: _a0
-func (_m *UsecaseItf) PrevWeekend(_a0 entity.DateOnly) entity.DateOnly {
+func (_m *UsecaseItf) PrevWeekend(_a0 dto.DateOnly) dto.DateOnly {
 	ret := _m.Called(_a0)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PrevWeekend")
 	}
 
-	var r0 entity.DateOnly
-	if rf, ok := ret.Get(0).(func(entity.DateOnly) entity.DateOnly); ok {
+	var r0 dto.DateOnly
+	if rf, ok := ret.Get(0).(func(dto.DateOnly) dto.DateOnly); ok {
 		r0 = rf(_a0)
 	} else {
-		r0 = ret.Get(0).(entity.DateOnly)
+		r0 = ret.Get(0).(dto.DateOnly)
 	}
 
 	return r0
