@@ -139,6 +139,31 @@ func TestIntegratedHandlerGetSymbols(t *testing.T) {
 		expectedBody   string
 	}{
 		{
+			name: "usecase returns error",
+			link: "/symbols?keywords=BA",
+			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
+				mocked := new(mocks.UsecaseItf)
+
+				// input to usecase
+				var req dto.GetSymbolsReq
+				req.Prefix = "BA"
+
+				// usecase mechanism
+				contextMatcher := mock.MatchedBy(func(c *gin.Context) bool {
+					// Verify the query parameter was properly extracted
+					prefix, exists := c.GetQuery("keywords")
+					return exists && prefix == "BA"
+				})
+				mocked.On("GetSymbols", contextMatcher, &req).Return(nil, constant.ErrAPIExceed)
+
+				return mocked
+			},
+			expectedStatus: http.StatusBadGateway,
+			expectedBody: `{"success":false,` +
+				`"error":"exceeded API-use limit today",` +
+				`"data":null}`,
+		},
+		{
 			name: "handling successful usecase outcome",
 			link: "/symbols?keywords=BA",
 			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
