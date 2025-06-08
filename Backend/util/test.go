@@ -50,10 +50,10 @@ func (o *OHLCVGenerator) Next() dto.DailyOHLCVRes {
 	o.Volume++
 
 	res.OHLC = make(map[string]decimal.Decimal)
-	res.OHLC["open"] = decimal.NewFromInt(o.Value + 1)
+	res.OHLC["close"] = decimal.NewFromInt(o.Value + 1)
 	res.OHLC["high"] = decimal.NewFromInt(o.Value + 2)
 	res.OHLC["low"] = decimal.NewFromInt(o.Value + 3)
-	res.OHLC["close"] = decimal.NewFromInt(o.Value + 4)
+	res.OHLC["open"] = decimal.NewFromInt(o.Value + 4)
 	o.Value += 100
 
 	return res

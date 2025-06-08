@@ -344,7 +344,14 @@ func TestUnitHandlerCollectSymbol(t *testing.T) {
 				return mock
 			},
 			expectedStatus: http.StatusCreated,
-			expectedBody:   "",
+			expectedBody: `{"data":{"meta_data":{"symbol":"AAPL","last_refreshed":` +
+				`"2025-06-01","size":3},"weeks_covered":[{"monday":"2025-06-02","friday":` +
+				`"2025-06-03","daily_data":[{"day":"2025-06-04","ohlc":{"close":"101",` +
+				`"high":"102","low":"103","open":"104"},"volume":1}]},{"monday":"2025-06-05"` +
+				`,"friday":"2025-06-06","daily_data":[{"day":"2025-06-07","ohlc":{"close":` +
+				`"201","high":"202","low":"203","open":"204"},"volume":2},{"day":"2025-06-08"` +
+				`,"ohlc":{"close":"301","high":"302","low":"303","open":"304"},"volume":3}]}]}` +
+				`,"error":null,"message":null}`,
 			expectedError: func(ctx *gin.Context) {
 				assert.Equal(t, len(ctx.Errors), 0)
 			},
