@@ -7,6 +7,7 @@ import (
 	mocks "Backend/mocks/usecase"
 	"Backend/usecase"
 	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -240,6 +241,10 @@ func TestIntegratedHandlerGetSymbols(t *testing.T) {
 	}
 }
 func TestUnitHandlerCollectSymbol(t *testing.T) {
+	var (
+		oriLink string = "/data"
+	)
+
 	testCases := []struct {
 		name           string
 		link           string
@@ -247,7 +252,50 @@ func TestUnitHandlerCollectSymbol(t *testing.T) {
 		expectedStatus int
 		expectedBody   string
 		expectedError  func(*gin.Context)
-	}{}
+	}{
+		{
+			name: "no path parameter provided",
+			link: oriLink,
+			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
+				return new(mocks.UsecaseItf)
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody:   "",
+			expectedError: func(ctx *gin.Context) {
+				assert.Equal(t, len(ctx.Errors), 1)
+
+				var ce constant.CustomError
+				assert.Equal(t, errors.As(ctx.Errors[0], &ce), true)
+				assert.Equal(t, errors.Is(ce, constant.ErrNoSymbol), true)
+			},
+		},
+		{
+			name: "usecase returns error",
+			link: oriLink + "/IBM",
+			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
+				mock := new(mocks.UsecaseItf)
+
+				// input to usecase
+				var req dto.CollectSymbolReq
+				req.Symbol = "IBM"
+
+				// usecase mechanism
+				mock.On("CollectSymbol", ctx, &req).Return(nil, constant.ErrAPIExceed)
+
+				return mock
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody:   "",
+			expectedError: func(ctx *gin.Context) {
+				assert.Equal(t, len(ctx.Errors), 1)
+
+				var ce constant.CustomError
+				assert.Equal(t, errors.As(ctx.Errors[0], &ce), true)
+				log.Println(ce)
+				assert.Equal(t, errors.Is(ce, constant.ErrAPIExceed), true)
+			},
+		},
+	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
@@ -258,6 +306,19 @@ func TestUnitHandlerCollectSymbol(t *testing.T) {
 			c.Request = r
 
 			hd := NewHandler(tt.ucSetup(c))
+
+			// - have to manually add params
+			if len(tt.link) > len(oriLink)+1 {
+				extraPath := tt.link[len(oriLink):]
+
+				var b byte = '/'
+				assert.Equal(t, b, extraPath[0])
+
+				params := gin.Params{
+					{Key: "symbol", Value: extraPath[1:]},
+				}
+				c.Params = params
+			}
 
 			//when
 			hd.CollectSymbol(c)
