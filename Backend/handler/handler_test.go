@@ -241,10 +241,6 @@ func TestIntegratedHandlerGetSymbols(t *testing.T) {
 	}
 }
 func TestUnitHandlerCollectSymbol(t *testing.T) {
-	var (
-		oriLink string = "/data"
-	)
-
 	testCases := []struct {
 		name           string
 		link           string
@@ -255,7 +251,7 @@ func TestUnitHandlerCollectSymbol(t *testing.T) {
 	}{
 		{
 			name: "no path parameter provided",
-			link: oriLink,
+			link: "/data",
 			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
 				return new(mocks.UsecaseItf)
 			},
@@ -271,7 +267,7 @@ func TestUnitHandlerCollectSymbol(t *testing.T) {
 		},
 		{
 			name: "usecase returns error",
-			link: oriLink + "/IBM",
+			link: "/data/IBM",
 			ucSetup: func(ctx *gin.Context) usecase.UsecaseItf {
 				mock := new(mocks.UsecaseItf)
 
@@ -308,8 +304,8 @@ func TestUnitHandlerCollectSymbol(t *testing.T) {
 			hd := NewHandler(tt.ucSetup(c))
 
 			// - have to manually add params
-			if len(tt.link) > len(oriLink)+1 {
-				extraPath := tt.link[len(oriLink):]
+			if len(tt.link) > len("/data")+1 {
+				extraPath := tt.link[len("/data"):]
 
 				var b byte = '/'
 				assert.Equal(t, b, extraPath[0])
