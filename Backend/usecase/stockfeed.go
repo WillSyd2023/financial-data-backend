@@ -3,6 +3,7 @@ package usecase
 import (
 	"Backend/constant"
 	"Backend/dto"
+	"Backend/entity"
 	"Backend/repo"
 	"Backend/util"
 	"encoding/json"
@@ -22,8 +23,8 @@ type UsecaseItf interface {
 	// Helper methods
 	GetUnexpectedInfo([]byte) error
 	ParseOHLCV(*gin.Context, *map[string]string) (*dto.DailyOHLCVRes, error)
-	PrevWeekend(time.Time) time.Time
-	NextWeek(time.Time) *dto.WeekRes
+	PrevWeekend(entity.DateOnly) entity.DateOnly
+	NextWeek(entity.DateOnly) *dto.WeekRes
 	BuildStockData(*dto.DataPerSymbol) *dto.StockDataRes
 
 	// Main methods
@@ -110,7 +111,7 @@ func (uc *Usecase) ParseOHLCV(ctx *gin.Context, timeSeries *map[string]string) (
 	return &ohlcv, nil
 }
 
-func (uc *Usecase) PrevWeekend(t time.Time) time.Time {
+func (uc *Usecase) PrevWeekend(t entity.DateOnly) entity.DateOnly {
 	for {
 		weekday := t.Weekday()
 		if weekday == time.Saturday || weekday == time.Sunday {
@@ -120,7 +121,7 @@ func (uc *Usecase) PrevWeekend(t time.Time) time.Time {
 	}
 }
 
-func (uc *Usecase) NextWeek(t time.Time) *dto.WeekRes {
+func (uc *Usecase) NextWeek(t entity.DateOnly) *dto.WeekRes {
 	week := &dto.WeekRes{}
 	t1 := t
 	for {
@@ -257,12 +258,13 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	if err != nil {
 		return nil, constant.ErrAlphaParseBody(err.Error())
 	}
-	metaData.LastRefreshed = t
+	metaData.LastRefreshed = entity.DateOnly(t)
 
 	// 2. collect first constant.DefaultStocksNum days of time series data
 	date := metaData.LastRefreshed.AddDate(0, 0,
 		-constant.DefaultStocksNum+1)
 	date = uc.PrevWeekend(date)
+	dateTime := time.Time(date)
 	timeSeries := make([]dto.DailyOHLCVRes, 0)
 	for key, value := range alphaData.TimeSeries {
 		keyDate, err := time.Parse(constant.LayoutISO, key)
@@ -270,14 +272,14 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 			return nil, constant.ErrAlphaParseBody(err.Error())
 		}
 
-		if !keyDate.Before(date) {
+		if !keyDate.Before(dateTime) {
 
 			ohlcv, err := uc.ParseOHLCV(ctx, &value)
 
 			if err != nil {
 				return nil, constant.ErrAlphaParseBody(err.Error())
 			}
-			ohlcv.Day = keyDate
+			ohlcv.Day = entity.DateOnly(keyDate)
 			timeSeries = append(timeSeries, *ohlcv)
 		}
 	}

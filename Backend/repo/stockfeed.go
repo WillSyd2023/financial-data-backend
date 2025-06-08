@@ -46,7 +46,7 @@ func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, data *dto.DataPerSymbol) e
 		ctx,
 		"INSERT INTO symbols (symbol, last_refreshed) VALUES ($1, $2) RETURNING symbol_id",
 		data.MetaData.Symbol,
-		data.MetaData.LastRefreshed.Format(time.RFC3339),
+		time.Time(data.MetaData.LastRefreshed).Format(time.RFC3339),
 	).Scan(&id)
 	if err != nil {
 		return err
@@ -72,8 +72,9 @@ func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, data *dto.DataPerSymbol) e
 
 		// Data corresponding to numbering
 		timeSeries = append(timeSeries,
-			ohlcv.Day.Format(time.RFC3339), ohlcv.OHLC["open"], ohlcv.OHLC["high"], ohlcv.OHLC["low"],
-			ohlcv.OHLC["close"], ohlcv.Volume, id)
+			time.Time(ohlcv.Day).Format(time.RFC3339),
+			ohlcv.OHLC["open"], ohlcv.OHLC["high"], ohlcv.OHLC["low"], ohlcv.OHLC["close"],
+			ohlcv.Volume, id)
 	}
 
 	// Insert data

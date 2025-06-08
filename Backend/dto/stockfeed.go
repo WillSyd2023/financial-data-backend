@@ -1,20 +1,20 @@
 package dto
 
 import (
-	"time"
+	"Backend/entity"
 
 	"github.com/shopspring/decimal"
 )
 
 // General use containers for stock data
 type SymbolDataMeta struct {
-	Symbol        string    `json:"symbol"`
-	LastRefreshed time.Time `json:"last_refreshed"`
-	Size          int       `json:"size"`
+	Symbol        string          `json:"symbol"`
+	LastRefreshed entity.DateOnly `json:"last_refreshed"`
+	Size          int             `json:"size"`
 }
 
 type DailyOHLCVRes struct {
-	Day    time.Time                  `json:"day"`
+	Day    entity.DateOnly            `json:"day"`
 	OHLC   map[string]decimal.Decimal `json:"ohlc"`
 	Volume int                        `json:"volume"`
 }
@@ -25,8 +25,8 @@ type DataPerSymbol struct {
 }
 
 type WeekRes struct {
-	Monday    time.Time       `json:"monday"`
-	Friday    time.Time       `json:"friday"`
+	Monday    entity.DateOnly `json:"monday"`
+	Friday    entity.DateOnly `json:"friday"`
 	DailyData []DailyOHLCVRes `json:"daily_data"`
 }
 
