@@ -6,7 +6,9 @@ import (
 	mocks1 "Backend/mocks/repo"
 	mocks2 "Backend/mocks/util"
 	"errors"
+	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +20,7 @@ func TestUnitUsecaseParseOHLCV(t *testing.T) {
 		name           string
 		tsInput        func() *map[string]string
 		expectedOutput func(*dto.DailyOHLCVRes)
-		expectedError  error
+		expectedError  func(error)
 	}{
 		{
 			name: "no open price",
@@ -29,9 +31,36 @@ func TestUnitUsecaseParseOHLCV(t *testing.T) {
 			expectedOutput: func(output *dto.DailyOHLCVRes) {
 				assert.Equal(t, nil, output)
 			},
-			expectedError: constant.ErrAlphaParseBody(
-				"can't find open price as usual",
-			),
+			expectedError: func(err error) {
+				expected := constant.ErrAlphaParseBody(
+					"can't find open price as usual",
+				)
+				assert.Equal(t, errors.Is(expected, err), true)
+			},
+		},
+		{
+			name: "unparseable open price",
+			tsInput: func() *map[string]string {
+				ts := make(map[string]string)
+				ts["1. open"] = "one hundred"
+				return &ts
+			},
+			expectedOutput: func(output *dto.DailyOHLCVRes) {
+				assert.Equal(t, nil, output)
+			},
+			expectedError: func(err error) {
+				var ce constant.CustomError
+				assert.Equal(t, errors.As(err, &ce), true)
+				assert.Equal(t, ce.StatusCode, http.StatusBadGateway)
+				assert.Equal(
+					t,
+					strings.HasPrefix(
+						ce.Message,
+						"Alpha Vantage API response-body-parse error: ",
+					),
+					true,
+				)
+			},
 		},
 	}
 
@@ -46,7 +75,7 @@ func TestUnitUsecaseParseOHLCV(t *testing.T) {
 
 			//then
 			tt.expectedOutput(output)
-			assert.Equal(t, errors.Is(tt.expectedError, err), true)
+			tt.expectedError(err)
 		})
 	}
 }
