@@ -81,17 +81,17 @@ func (uc *Usecase) ParseOHLCV(ctx *gin.Context, timeSeries *map[string]string) (
 
 		parts := strings.Split(value, " ")
 		text, ok := TimeSeries[value]
-
 		if !ok {
 			return nil, constant.ErrAlphaParseBody(
 				fmt.Sprintf("can't find %s price as usual", parts[1]),
 			)
 		}
-		dec, err := decimal.NewFromString(text)
 
+		dec, err := decimal.NewFromString(text)
 		if err != nil {
 			return nil, constant.ErrAlphaParseBody(err.Error())
 		}
+
 		ohlcv.OHLC[parts[1]] = dec
 	}
 
