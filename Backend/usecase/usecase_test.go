@@ -5,12 +5,15 @@ import (
 	"Backend/dto"
 	mocks1 "Backend/mocks/repo"
 	mocks2 "Backend/mocks/util"
+	"Backend/util"
 	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/assert"
@@ -284,6 +287,61 @@ func TestUnitUsecaseParseOHLCV(t *testing.T) {
 			//then
 			tt.expectedOutput(output)
 			tt.expectedError(err)
+		})
+	}
+}
+func TestUnitUsecaseBuildStockData(t *testing.T) {
+	timeDate := time.Date(2025, 6, 2, 0, 0, 0, 0, time.UTC)
+
+	testCases := []struct {
+		name           string
+		dataInput      func() *dto.DataPerSymbol
+		expectedOutput func() *dto.StockDataRes
+	}{
+		{
+			name: "one week",
+			dataInput: func() *dto.DataPerSymbol {
+				data := new(dto.DataPerSymbol)
+
+				dateGen := util.DateGenerator(timeDate.AddDate(0, 0, 2))
+				ohlcvGen := util.NewOHLCVGenerator(
+					&dateGen, 100, 100)
+
+				data.TimeSeries = append(data.TimeSeries, ohlcvGen.Next())
+
+				return data
+			},
+			expectedOutput: func() *dto.StockDataRes {
+				output := new(dto.StockDataRes)
+
+				week := new(dto.WeekRes)
+				week.Monday = dto.DateOnly(timeDate)
+				week.Friday = dto.DateOnly(timeDate).AddDate(0, 0, 4)
+
+				dateGen := util.DateGenerator(timeDate.AddDate(0, 0, 2))
+				ohlcvGen := util.NewOHLCVGenerator(
+					&dateGen, 100, 100)
+
+				week.DailyData = append(week.DailyData, ohlcvGen.Next())
+
+				output.Weeks = append(output.Weeks, week)
+				return output
+			},
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			//given
+			uc := NewUsecase(new(mocks1.RepoItf), new(mocks2.HttpClientItf))
+
+			//when
+			output := uc.BuildStockData(tt.dataInput())
+
+			//then
+			log.Println(tt.expectedOutput())
+			log.Println(output)
+			assert.Equal(t, reflect.DeepEqual(tt.expectedOutput(), output), true)
 		})
 	}
 }
