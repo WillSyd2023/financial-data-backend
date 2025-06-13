@@ -7,7 +7,6 @@ import (
 	mocks2 "Backend/mocks/util"
 	"Backend/util"
 	"errors"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -328,6 +327,53 @@ func TestUnitUsecaseBuildStockData(t *testing.T) {
 				return output
 			},
 		},
+		{
+			name: "two weeks",
+			dataInput: func() *dto.DataPerSymbol {
+				data := new(dto.DataPerSymbol)
+
+				dateGen := util.DateGenerator(timeDate.AddDate(0, 0, 2))
+				ohlcvGen := util.NewOHLCVGenerator(
+					&dateGen, 100, 100)
+
+				data.TimeSeries = append(data.TimeSeries, ohlcvGen.Next())
+
+				dateGen = util.DateGenerator(timeDate.AddDate(0, 0, 8))
+				ohlcvGen.DateGen = &dateGen
+
+				data.TimeSeries = append(data.TimeSeries, ohlcvGen.Next())
+				data.TimeSeries = append(data.TimeSeries, ohlcvGen.Next())
+				return data
+			},
+			expectedOutput: func() *dto.StockDataRes {
+				output := new(dto.StockDataRes)
+
+				week := new(dto.WeekRes)
+				week.Monday = dto.DateOnly(timeDate)
+				week.Friday = dto.DateOnly(timeDate).AddDate(0, 0, 4)
+
+				dateGen := util.DateGenerator(timeDate.AddDate(0, 0, 2))
+				ohlcvGen := util.NewOHLCVGenerator(
+					&dateGen, 100, 100)
+
+				week.DailyData = append(week.DailyData, ohlcvGen.Next())
+
+				output.Weeks = append(output.Weeks, week)
+
+				week = new(dto.WeekRes)
+				week.Monday = dto.DateOnly(timeDate).AddDate(0, 0, 7)
+				week.Friday = dto.DateOnly(timeDate).AddDate(0, 0, 11)
+
+				dateGen = util.DateGenerator(timeDate.AddDate(0, 0, 8))
+				ohlcvGen.DateGen = &dateGen
+
+				week.DailyData = append(week.DailyData, ohlcvGen.Next())
+				week.DailyData = append(week.DailyData, ohlcvGen.Next())
+
+				output.Weeks = append(output.Weeks, week)
+				return output
+			},
+		},
 	}
 
 	for _, tt := range testCases {
@@ -339,8 +385,6 @@ func TestUnitUsecaseBuildStockData(t *testing.T) {
 			output := uc.BuildStockData(tt.dataInput())
 
 			//then
-			log.Println(tt.expectedOutput())
-			log.Println(output)
 			assert.Equal(t, reflect.DeepEqual(tt.expectedOutput(), output), true)
 		})
 	}
