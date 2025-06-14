@@ -8,6 +8,7 @@ import (
 	"Backend/repo"
 	"Backend/util"
 	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -391,20 +392,47 @@ func TestUnitUsecaseBuildStockData(t *testing.T) {
 	}
 }
 func TestUnitUsecaseCollectSymbol(t *testing.T) {
+	var (
+		errorSample = errors.New("error")
+	)
+
 	testCases := []struct {
 		name           string
-		repoSetup      func() repo.RepoItf
-		httpSetup      func() util.HttpClientItf
 		inputReq       *dto.CollectSymbolReq
+		repoSetup      func(*gin.Context) repo.RepoItf
+		httpSetup      func(*gin.Context) util.HttpClientItf
 		expectedOutput func() *dto.StockDataRes
 		expectedErr    func(error)
-	}{}
+	}{
+		{
+			name:     "checking symbol exist lead to error",
+			inputReq: &dto.CollectSymbolReq{Symbol: "KAMBING"},
+			repoSetup: func(ctx *gin.Context) repo.RepoItf {
+				mock := new(mocks1.RepoItf)
+				mock.On(
+					"CheckSymbolExists",
+					ctx,
+					&dto.CollectSymbolReq{Symbol: "KAMBING"},
+				).Return(false, errorSample)
+				return mock
+			},
+			httpSetup: func(*gin.Context) util.HttpClientItf {
+				return new(mocks2.HttpClientItf)
+			},
+			expectedOutput: func() *dto.StockDataRes { return nil },
+			expectedErr: func(err error) {
+				log.Println("HERE")
+				log.Println(err)
+				assert.Equal(t, errors.Is(err, errorSample), true)
+			},
+		},
+	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			//given
-			uc := NewUsecase(tt.repoSetup(), tt.httpSetup())
 			c, _ := gin.CreateTestContext(httptest.NewRecorder())
+			uc := NewUsecase(tt.repoSetup(c), tt.httpSetup(c))
 
 			//when
 			output, err := uc.CollectSymbol(c, tt.inputReq)
