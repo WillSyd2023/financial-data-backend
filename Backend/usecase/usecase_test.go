@@ -8,8 +8,10 @@ import (
 	"Backend/repo"
 	"Backend/util"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -393,6 +395,12 @@ func TestUnitUsecaseBuildStockData(t *testing.T) {
 func TestUnitUsecaseCollectSymbol(t *testing.T) {
 	var (
 		errorSample = errors.New("error")
+		url         = fmt.Sprintf("https://www.alphavantage.co/"+
+			"query?function=TIME_SERIES_DAILY"+
+			"&symbol=%s&apikey=%s",
+			"KAMBING",
+			os.Getenv("ALPHA_VANTAGE_API_KEY"),
+		)
 	)
 
 	testCases := []struct {
@@ -441,6 +449,41 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 			expectedOutput: func() *dto.StockDataRes { return nil },
 			expectedErr: func(err error) {
 				assert.Equal(t, errors.Is(err, constant.ErrStockAlready), true)
+			},
+		},
+		{
+			name:     "retrieving data returns error",
+			inputReq: &dto.CollectSymbolReq{Symbol: "KAMBING"},
+			repoSetup: func(ctx *gin.Context) repo.RepoItf {
+				mock := new(mocks1.RepoItf)
+				mock.On(
+					"CheckSymbolExists",
+					ctx,
+					&dto.CollectSymbolReq{Symbol: "KAMBING"},
+				).Return(false, nil)
+				return mock
+			},
+			httpSetup: func(*gin.Context) util.HttpClientItf {
+				mock := new(mocks2.HttpClientItf)
+				mock.On(
+					"Get",
+					url,
+				).Return(nil, errorSample)
+				return mock
+			},
+			expectedOutput: func() *dto.StockDataRes { return nil },
+			expectedErr: func(err error) {
+				var ce constant.CustomError
+				assert.Equal(t, errors.As(err, &ce), true)
+				assert.Equal(t, ce.StatusCode, http.StatusBadGateway)
+				assert.Equal(
+					t,
+					strings.HasPrefix(
+						ce.Message,
+						"Alpha Vantage API GET error: ",
+					),
+					true,
+				)
 			},
 		},
 	}
