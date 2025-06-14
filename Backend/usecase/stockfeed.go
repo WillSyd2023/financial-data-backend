@@ -47,9 +47,9 @@ func NewUsecase(rp repo.RepoItf, hc util.HttpClientItf) *Usecase {
 
 func (uc *Usecase) GetUnexpectedInfo(body []byte) error {
 	var info dto.AlphaInfo
-	readErr := json.Unmarshal(body, &info)
-	if readErr != nil {
-		return constant.ErrAlphaUnmarshal(readErr)
+	err := json.Unmarshal(body, &info)
+	if err != nil {
+		return constant.ErrAlphaUnmarshal(err)
 	}
 
 	// Indicate if this is not an information-JSON body
@@ -181,8 +181,8 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 	}
 	defer response.Body.Close()
 
-	body, readErr := uc.hc.ReadAll(response.Body)
-	if readErr != nil {
+	body, err := uc.hc.ReadAll(response.Body)
+	if err != nil {
 		return nil, constant.ErrAlphaReadAll(err)
 	}
 
@@ -194,9 +194,9 @@ func (uc *Usecase) GetSymbols(ctx *gin.Context, req *dto.GetSymbolsReq) (*dto.Al
 
 	// Unmarshal body
 	var symbols dto.AlphaSymbolsRes
-	readErr = json.Unmarshal(body, &symbols)
-	if readErr != nil {
-		return nil, constant.ErrAlphaUnmarshal(readErr)
+	err = json.Unmarshal(body, &symbols)
+	if err != nil {
+		return nil, constant.ErrAlphaUnmarshal(err)
 	}
 
 	return &symbols, nil
