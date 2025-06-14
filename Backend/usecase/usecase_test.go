@@ -395,6 +395,8 @@ func TestUnitUsecaseBuildStockData(t *testing.T) {
 	}
 }
 func TestUnitUsecaseCollectSymbol(t *testing.T) {
+	t.Setenv("ALPHA_VANTAGE_API_KEY", "_________________________")
+
 	var (
 		errorSample = errors.New("error")
 		url         = fmt.Sprintf("https://www.alphavantage.co/"+
@@ -403,6 +405,7 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 			"KAMBING",
 			os.Getenv("ALPHA_VANTAGE_API_KEY"),
 		)
+		info = `{"Information":"testing"}`
 	)
 
 	testCases := []struct {
@@ -524,6 +527,53 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 				assert.Equal(
 					t,
 					errors.Is(err, constant.ErrAlphaReadAll(errors.New("error"))),
+					true,
+				)
+			},
+		},
+		{
+			name:     "unexpected info error",
+			inputReq: &dto.CollectSymbolReq{Symbol: "KAMBING"},
+			repoSetup: func(ctx *gin.Context) repo.RepoItf {
+				mock := new(mocks1.RepoItf)
+				mock.On(
+					"CheckSymbolExists",
+					ctx,
+					&dto.CollectSymbolReq{Symbol: "KAMBING"},
+				).Return(false, nil)
+				return mock
+			},
+			httpSetup: func(*gin.Context) util.HttpClientItf {
+
+				resp := &http.Response{
+					StatusCode: 200,
+					Body:       io.NopCloser(strings.NewReader(info)),
+				}
+
+				mocked := new(mocks2.HttpClientItf)
+				mocked.On(
+					"Get",
+					url,
+				).Return(resp, nil)
+
+				mocked.On(
+					"ReadAll",
+					mock.MatchedBy(
+						func(body io.ReadCloser) bool {
+							bytes, err := io.ReadAll(body)
+							return err == nil &&
+								string(bytes) == info
+						},
+					),
+				).Return([]byte(info), nil)
+
+				return mocked
+			},
+			expectedOutput: func() *dto.StockDataRes { return nil },
+			expectedErr: func(err error) {
+				assert.Equal(
+					t,
+					errors.Is(err, constant.NewCError(http.StatusBadGateway, "testing")),
 					true,
 				)
 			},
