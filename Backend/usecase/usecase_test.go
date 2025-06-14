@@ -475,15 +475,9 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 			},
 			expectedOutput: func() *dto.StockDataRes { return nil },
 			expectedErr: func(err error) {
-				var ce constant.CustomError
-				assert.Equal(t, errors.As(err, &ce), true)
-				assert.Equal(t, ce.StatusCode, http.StatusBadGateway)
 				assert.Equal(
 					t,
-					strings.HasPrefix(
-						ce.Message,
-						"Alpha Vantage API GET error: ",
-					),
+					errors.Is(err, constant.ErrAlphaGet(errors.New("error"))),
 					true,
 				)
 			},
@@ -527,15 +521,9 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 			},
 			expectedOutput: func() *dto.StockDataRes { return nil },
 			expectedErr: func(err error) {
-				var ce constant.CustomError
-				assert.Equal(t, errors.As(err, &ce), true)
-				assert.Equal(t, ce.StatusCode, http.StatusBadGateway)
 				assert.Equal(
 					t,
-					strings.HasPrefix(
-						ce.Message,
-						"Alpha Vantage API body-io.ReadAll-parse error: ",
-					),
+					errors.Is(err, constant.ErrAlphaReadAll(errors.New("error"))),
 					true,
 				)
 			},
