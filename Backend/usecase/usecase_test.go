@@ -5,6 +5,7 @@ import (
 	"Backend/dto"
 	mocks1 "Backend/mocks/repo"
 	mocks2 "Backend/mocks/util"
+	"Backend/repo"
 	"Backend/util"
 	"errors"
 	"net/http"
@@ -386,6 +387,31 @@ func TestUnitUsecaseBuildStockData(t *testing.T) {
 
 			//then
 			assert.Equal(t, reflect.DeepEqual(tt.expectedOutput(), output), true)
+		})
+	}
+}
+func TestUnitUsecaseCollectSymbol(t *testing.T) {
+	testCases := []struct {
+		name           string
+		repoSetup      func() repo.RepoItf
+		httpSetup      func() util.HttpClientItf
+		inputReq       *dto.CollectSymbolReq
+		expectedOutput func() *dto.StockDataRes
+		expectedErr    func(error)
+	}{}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			//given
+			uc := NewUsecase(tt.repoSetup(), tt.httpSetup())
+			c, _ := gin.CreateTestContext(httptest.NewRecorder())
+
+			//when
+			output, err := uc.CollectSymbol(c, tt.inputReq)
+
+			//then
+			assert.Equal(t, reflect.DeepEqual(tt.expectedOutput(), output), true)
+			tt.expectedErr(err)
 		})
 	}
 }
