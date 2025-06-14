@@ -514,7 +514,13 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 
 				mocked.On(
 					"ReadAll",
-					mock.Anything,
+					mock.MatchedBy(
+						func(body io.ReadCloser) bool {
+							bytes, err := io.ReadAll(body)
+							return err == nil &&
+								string(bytes) == `random`
+						},
+					),
 				).Return(nil, errorSample)
 
 				return mocked
