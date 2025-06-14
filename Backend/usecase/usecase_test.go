@@ -8,7 +8,6 @@ import (
 	"Backend/repo"
 	"Backend/util"
 	"errors"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -421,9 +420,27 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 			},
 			expectedOutput: func() *dto.StockDataRes { return nil },
 			expectedErr: func(err error) {
-				log.Println("HERE")
-				log.Println(err)
 				assert.Equal(t, errors.Is(err, errorSample), true)
+			},
+		},
+		{
+			name:     "symbol is already in database",
+			inputReq: &dto.CollectSymbolReq{Symbol: "KAMBING"},
+			repoSetup: func(ctx *gin.Context) repo.RepoItf {
+				mock := new(mocks1.RepoItf)
+				mock.On(
+					"CheckSymbolExists",
+					ctx,
+					&dto.CollectSymbolReq{Symbol: "KAMBING"},
+				).Return(true, nil)
+				return mock
+			},
+			httpSetup: func(*gin.Context) util.HttpClientItf {
+				return new(mocks2.HttpClientItf)
+			},
+			expectedOutput: func() *dto.StockDataRes { return nil },
+			expectedErr: func(err error) {
+				assert.Equal(t, errors.Is(err, constant.ErrStockAlready), true)
 			},
 		},
 	}
