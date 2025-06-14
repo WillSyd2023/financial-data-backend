@@ -9,6 +9,7 @@ import (
 	"Backend/util"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -20,6 +21,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/assert"
 	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestUnitUsecaseParseOHLCV(t *testing.T) {
@@ -481,6 +483,52 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 					strings.HasPrefix(
 						ce.Message,
 						"Alpha Vantage API GET error: ",
+					),
+					true,
+				)
+			},
+		},
+		{
+			name:     "failure reading response body",
+			inputReq: &dto.CollectSymbolReq{Symbol: "KAMBING"},
+			repoSetup: func(ctx *gin.Context) repo.RepoItf {
+				mock := new(mocks1.RepoItf)
+				mock.On(
+					"CheckSymbolExists",
+					ctx,
+					&dto.CollectSymbolReq{Symbol: "KAMBING"},
+				).Return(false, nil)
+				return mock
+			},
+			httpSetup: func(*gin.Context) util.HttpClientItf {
+				resp := &http.Response{
+					StatusCode: 200,
+					Body:       io.NopCloser(strings.NewReader(`random`)),
+				}
+
+				mocked := new(mocks2.HttpClientItf)
+				mocked.On(
+					"Get",
+					url,
+				).Return(resp, nil)
+
+				mocked.On(
+					"ReadAll",
+					mock.Anything,
+				).Return(nil, errorSample)
+
+				return mocked
+			},
+			expectedOutput: func() *dto.StockDataRes { return nil },
+			expectedErr: func(err error) {
+				var ce constant.CustomError
+				assert.Equal(t, errors.As(err, &ce), true)
+				assert.Equal(t, ce.StatusCode, http.StatusBadGateway)
+				assert.Equal(
+					t,
+					strings.HasPrefix(
+						ce.Message,
+						"Alpha Vantage API body-io.ReadAll-parse error: ",
 					),
 					true,
 				)

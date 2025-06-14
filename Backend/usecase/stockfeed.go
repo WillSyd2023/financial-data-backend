@@ -221,14 +221,13 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 	)
 
 	response, err := uc.hc.Get(url)
-
 	if err != nil {
 		return nil, constant.ErrAlphaGet(err)
 	}
 	defer response.Body.Close()
 
-	body, readErr := uc.hc.ReadAll(response.Body)
-	if readErr != nil {
+	body, err := uc.hc.ReadAll(response.Body)
+	if err != nil {
 		return nil, constant.ErrAlphaReadAll(err)
 	}
 
@@ -240,9 +239,9 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 
 	// Unmarshal body
 	var alphaData dto.AlphaStockDataRes
-	readErr = json.Unmarshal(body, &alphaData)
-	if readErr != nil {
-		return nil, constant.ErrAlphaUnmarshal(readErr)
+	err = json.Unmarshal(body, &alphaData)
+	if err != nil {
+		return nil, constant.ErrAlphaUnmarshal(err)
 	}
 
 	alphaMeta := alphaData.MetaData
