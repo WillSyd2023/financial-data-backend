@@ -405,7 +405,8 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 			"KAMBING",
 			os.Getenv("ALPHA_VANTAGE_API_KEY"),
 		)
-		info = `{"Information":"testing"}`
+		info       = `{"Information":"testing"}`
+		helloWorld = `{hello world}`
 	)
 
 	testCases := []struct {
@@ -544,7 +545,6 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 				return mock
 			},
 			httpSetup: func(*gin.Context) util.HttpClientItf {
-
 				resp := &http.Response{
 					StatusCode: 200,
 					Body:       io.NopCloser(strings.NewReader(info)),
@@ -574,6 +574,60 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 				assert.Equal(
 					t,
 					errors.Is(err, constant.NewCError(http.StatusBadGateway, "testing")),
+					true,
+				)
+			},
+		},
+		{
+			name:     "unexpected body, neither info type or stock data type",
+			inputReq: &dto.CollectSymbolReq{Symbol: "KAMBING"},
+			repoSetup: func(ctx *gin.Context) repo.RepoItf {
+				mock := new(mocks1.RepoItf)
+				mock.On(
+					"CheckSymbolExists",
+					ctx,
+					&dto.CollectSymbolReq{Symbol: "KAMBING"},
+				).Return(false, nil)
+				return mock
+			},
+			httpSetup: func(*gin.Context) util.HttpClientItf {
+				resp := &http.Response{
+					StatusCode: 200,
+					Body: io.NopCloser(
+						strings.NewReader(helloWorld),
+					),
+				}
+
+				mocked := new(mocks2.HttpClientItf)
+				mocked.On(
+					"Get",
+					url,
+				).Return(resp, nil)
+
+				mocked.On(
+					"ReadAll",
+					mock.MatchedBy(
+						func(body io.ReadCloser) bool {
+							bytes, err := io.ReadAll(body)
+							return err == nil &&
+								string(bytes) == helloWorld
+						},
+					),
+				).Return([]byte(helloWorld), nil)
+
+				return mocked
+			},
+			expectedOutput: func() *dto.StockDataRes { return nil },
+			expectedErr: func(err error) {
+				var ce constant.CustomError
+				assert.Equal(t, errors.As(err, &ce), true)
+				assert.Equal(t, ce.StatusCode, http.StatusBadGateway)
+				assert.Equal(
+					t,
+					strings.HasPrefix(
+						ce.Message,
+						"Alpha Vantage API body-json.Unmarshal-parse error: ",
+					),
 					true,
 				)
 			},
