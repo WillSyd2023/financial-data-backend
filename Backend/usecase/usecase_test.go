@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -399,14 +400,35 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 
 	var (
 		errorSample = errors.New("error")
-		url         = fmt.Sprintf("https://www.alphavantage.co/"+
+
+		urlKambing = fmt.Sprintf("https://www.alphavantage.co/"+
 			"query?function=TIME_SERIES_DAILY"+
 			"&symbol=%s&apikey=%s",
 			"KAMBING",
 			os.Getenv("ALPHA_VANTAGE_API_KEY"),
 		)
-		info       = `{"Information":"testing"}`
-		helloWorld = `{hello world}`
+
+		urlIBM = fmt.Sprintf("https://www.alphavantage.co/"+
+			"query?function=TIME_SERIES_DAILY"+
+			"&symbol=%s&apikey=%s",
+			"IBM",
+			os.Getenv("ALPHA_VANTAGE_API_KEY"),
+		)
+
+		metaDataTop = `{"Meta Data": {"1. Information": ` +
+			`"Daily Prices (open, high, low, close) and Volumes",` +
+			`"2. Symbol": "IBM",`
+
+		// metaDataMid = `"3. Last Refreshed": "2025-06-13"`
+
+		metaDataBottom = `"4. Output Size": "Compact",` +
+			`"5. Time Zone": "US/Eastern"},`
+
+		// metaData = metaDataTop + metaDataMid + metaDataBottom
+
+		tsTop = `"Time Series (Daily)": {`
+
+		tsBottom = `}}`
 	)
 
 	testCases := []struct {
@@ -473,7 +495,7 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 				mock := new(mocks2.HttpClientItf)
 				mock.On(
 					"Get",
-					url,
+					urlKambing,
 				).Return(nil, errorSample)
 				return mock
 			},
@@ -507,7 +529,7 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 				mocked := new(mocks2.HttpClientItf)
 				mocked.On(
 					"Get",
-					url,
+					urlKambing,
 				).Return(resp, nil)
 
 				mocked.On(
@@ -547,13 +569,15 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 			httpSetup: func(*gin.Context) util.HttpClientItf {
 				resp := &http.Response{
 					StatusCode: 200,
-					Body:       io.NopCloser(strings.NewReader(info)),
+					Body: io.NopCloser(strings.NewReader(
+						`{"Information":"testing"}`,
+					)),
 				}
 
 				mocked := new(mocks2.HttpClientItf)
 				mocked.On(
 					"Get",
-					url,
+					urlKambing,
 				).Return(resp, nil)
 
 				mocked.On(
@@ -562,10 +586,10 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 						func(body io.ReadCloser) bool {
 							bytes, err := io.ReadAll(body)
 							return err == nil &&
-								string(bytes) == info
+								string(bytes) == `{"Information":"testing"}`
 						},
 					),
-				).Return([]byte(info), nil)
+				).Return([]byte(`{"Information":"testing"}`), nil)
 
 				return mocked
 			},
@@ -594,14 +618,14 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 				resp := &http.Response{
 					StatusCode: 200,
 					Body: io.NopCloser(
-						strings.NewReader(helloWorld),
+						strings.NewReader(`{hello world}`),
 					),
 				}
 
 				mocked := new(mocks2.HttpClientItf)
 				mocked.On(
 					"Get",
-					url,
+					urlKambing,
 				).Return(resp, nil)
 
 				mocked.On(
@@ -610,10 +634,10 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 						func(body io.ReadCloser) bool {
 							bytes, err := io.ReadAll(body)
 							return err == nil &&
-								string(bytes) == helloWorld
+								string(bytes) == `{hello world}`
 						},
 					),
-				).Return([]byte(helloWorld), nil)
+				).Return([]byte(`{hello world}`), nil)
 
 				return mocked
 			},
@@ -627,6 +651,78 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 					strings.HasPrefix(
 						ce.Message,
 						"Alpha Vantage API body-json.Unmarshal-parse error: ",
+					),
+					true,
+				)
+			},
+		},
+		{
+			name:     "can't parse time from provided API data",
+			inputReq: &dto.CollectSymbolReq{Symbol: "IBM"},
+			repoSetup: func(ctx *gin.Context) repo.RepoItf {
+				mock := new(mocks1.RepoItf)
+				mock.On(
+					"CheckSymbolExists",
+					ctx,
+					&dto.CollectSymbolReq{Symbol: "IBM"},
+				).Return(false, nil)
+				return mock
+			},
+
+			httpSetup: func(*gin.Context) util.HttpClientItf {
+				resp := &http.Response{
+					StatusCode: 200,
+					Body: io.NopCloser(
+						strings.NewReader(
+							metaDataTop +
+								`"3. Last Refreshed": "bad data",` +
+								metaDataBottom +
+								tsTop +
+								tsBottom,
+						),
+					),
+				}
+
+				mocked := new(mocks2.HttpClientItf)
+				mocked.On(
+					"Get",
+					urlIBM,
+				).Return(resp, nil)
+
+				mocked.On(
+					"ReadAll",
+					mock.MatchedBy(
+						func(body io.ReadCloser) bool {
+							bytes, err := io.ReadAll(body)
+							return err == nil &&
+								string(bytes) == metaDataTop+
+									`"3. Last Refreshed": "bad data",`+
+									metaDataBottom+
+									tsTop+
+									tsBottom
+						},
+					),
+				).Return([]byte(
+					metaDataTop+
+						`"3. Last Refreshed": "bad data",`+
+						metaDataBottom+
+						tsTop+
+						tsBottom,
+				), nil)
+
+				return mocked
+			},
+			expectedOutput: func() *dto.StockDataRes { return nil },
+			expectedErr: func(err error) {
+				var ce constant.CustomError
+				assert.Equal(t, errors.As(err, &ce), true)
+				assert.Equal(t, ce.StatusCode, http.StatusBadGateway)
+				log.Println(ce)
+				assert.Equal(
+					t,
+					strings.HasPrefix(
+						ce.Message,
+						"Alpha Vantage API response-body-parse error: ",
 					),
 					true,
 				)
