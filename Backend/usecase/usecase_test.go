@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -799,6 +800,75 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 					),
 					true,
 				)
+			},
+		},
+		{
+			name:     "ParseOHLCV error",
+			inputReq: &dto.CollectSymbolReq{Symbol: "IBM"},
+			repoSetup: func(ctx *gin.Context) repo.RepoItf {
+				mock := new(mocks1.RepoItf)
+				mock.On(
+					"CheckSymbolExists",
+					ctx,
+					&dto.CollectSymbolReq{Symbol: "IBM"},
+				).Return(false, nil)
+				return mock
+			},
+			httpSetup: func(*gin.Context) util.HttpClientItf {
+				badOpen := `"2025-06-13": {
+					"open": "221.9800",
+					"2. high": "224.4000",
+					"3. low": "220.3500",
+					"4. close": "223.2600",
+					"5. volume": "4759490"
+				}`
+
+				resp := &http.Response{
+					StatusCode: 200,
+					Body: io.NopCloser(
+						strings.NewReader(
+							metaData +
+								tsTop +
+								badOpen +
+								tsBottom,
+						),
+					),
+				}
+
+				mocked := new(mocks2.HttpClientItf)
+				mocked.On(
+					"Get",
+					urlIBM,
+				).Return(resp, nil)
+
+				mocked.On(
+					"ReadAll",
+					mock.MatchedBy(
+						func(body io.ReadCloser) bool {
+							bytes, err := io.ReadAll(body)
+							return err == nil &&
+								string(bytes) == metaData+
+									tsTop+
+									badOpen+
+									tsBottom
+						},
+					),
+				).Return([]byte(
+					metaData+
+						tsTop+
+						badOpen+
+						tsBottom,
+				), nil)
+
+				return mocked
+			},
+			expectedOutput: func() *dto.StockDataRes { return nil },
+			expectedErr: func(err error) {
+				log.Println(err)
+				expected := constant.ErrAlphaParseBody(
+					"can't find open price as usual",
+				)
+				assert.Equal(t, errors.Is(expected, err), true)
 			},
 		},
 	}
