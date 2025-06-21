@@ -275,7 +275,7 @@ func (uc *Usecase) CollectSymbol(ctx *gin.Context, req *dto.CollectSymbolReq) (*
 			ohlcv, err := uc.ParseOHLCV(ctx, &value)
 
 			if err != nil {
-				return nil, constant.ErrAlphaParseBody(err.Error())
+				return nil, err
 			}
 			ohlcv.Day = dto.DateOnly(keyDate)
 			timeSeries = append(timeSeries, *ohlcv)
