@@ -871,6 +871,9 @@ func TestUnitUsecaseCollectSymbol(t *testing.T) {
 				assert.Equal(t, errors.Is(expected, err), true)
 			},
 		},
+		{
+			name: "empty data",
+		},
 	}
 
 	for _, tt := range testCases {
