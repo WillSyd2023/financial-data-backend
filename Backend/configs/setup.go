@@ -11,22 +11,19 @@ import (
 )
 
 func ConnectDB() *mongo.Client {
-	client, err := mongo.NewClient(options.Client().ApplyURI(EnvMongoURL()))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(EnvMongoURL()))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err = client.Connect(ctx)
-	if err != nil {
+	// Ping the database to verify connection
+	if err := client.Ping(ctx, nil); err != nil {
 		log.Fatal(err)
 	}
 
-	//ping the database
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
 	fmt.Println("Connected to MongoDB")
 	return client
 }
