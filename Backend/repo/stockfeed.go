@@ -23,12 +23,14 @@ type RepoItf interface {
 type Repo struct {
 	db               *sql.DB
 	symbolCollection *mongo.Collection
+	ohlcvCollection  *mongo.Collection
 }
 
 func NewRepo(db *sql.DB) *Repo {
 	return &Repo{
 		db:               db,
 		symbolCollection: configs.GetCollection(configs.DB, "symbols"),
+		ohlcvCollection:  configs.GetCollection(configs.DB, "daily_ohlcv"),
 	}
 }
 
