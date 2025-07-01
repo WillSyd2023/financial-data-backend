@@ -7,7 +7,7 @@ import (
 )
 
 type Symbol struct {
-	Id            primitive.ObjectID `json:"id"`
-	Name          string             `json:"name"`
-	LastRefreshed time.Time          `json:"last_refreshed"`
+	Id            primitive.ObjectID `bson:"_id,omitempty"`
+	Name          string             `bson:"name"`
+	LastRefreshed time.Time          `bson:"last_refreshed"`
 }
