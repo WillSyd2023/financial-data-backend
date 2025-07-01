@@ -37,7 +37,7 @@ func (m *Middleware) Error() gin.HandlerFunc {
 		// There is error; what error is it?
 		err := c.Errors[0]
 
-		// 1. Validation error from requests' JSON binding
+		// - Validation error from requests' JSON binding
 		var ve validator.ValidationErrors
 		if errors.As(err, &ve) {
 			validationErrors := make([]dto.ErrorType, 0)
@@ -54,7 +54,7 @@ func (m *Middleware) Error() gin.HandlerFunc {
 			return
 		}
 
-		// Custom error from `constant` repo
+		// - Custom error from `constant` repo
 		var ce constant.CustomError
 		if errors.As(err, &ce) {
 			c.AbortWithStatusJSON(ce.StatusCode, dto.Res{
@@ -64,7 +64,7 @@ func (m *Middleware) Error() gin.HandlerFunc {
 			return
 		}
 
-		// Unknown error, likely internal server error
+		// - Unknown error, likely internal server error
 		c.AbortWithStatusJSON(http.StatusInternalServerError, dto.Res{
 			Success: false,
 			Error:   err.Error(),
