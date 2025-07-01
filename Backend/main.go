@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Backend/configs"
 	"Backend/db"
 	"Backend/handler"
 	"Backend/middleware"
@@ -22,6 +23,9 @@ func main() {
 		log.Fatalf("error connect DB: %s", err)
 	}
 	defer db.Close()
+
+	// MongoDB
+	configs.ConnectDB()
 
 	// Setup server and middleware
 	r := gin.Default()
