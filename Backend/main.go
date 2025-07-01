@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -27,9 +28,10 @@ func main() {
 	// MongoDB
 	configs.ConnectDB()
 
-	// Setup server and middleware
+	// Setup server and middlewares
 	r := gin.Default()
 	middleware := middleware.NewMiddleware()
+	r.Use(middleware.Timeout(10 * time.Second))
 	r.Use(middleware.Error())
 
 	// Setup app (in layers)
