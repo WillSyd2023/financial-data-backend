@@ -64,6 +64,14 @@ func (m *Middleware) Error() gin.HandlerFunc {
 			return
 		}
 
+		// - Timeout error
+		if errors.Is(err, context.DeadlineExceeded) {
+			c.AbortWithStatusJSON(http.StatusGatewayTimeout, dto.Res{
+				Success: false,
+				Error:   err.Error(),
+			})
+		}
+
 		// - Unknown error, likely internal server error
 		c.AbortWithStatusJSON(http.StatusInternalServerError, dto.Res{
 			Success: false,
