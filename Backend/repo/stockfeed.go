@@ -3,6 +3,7 @@ package repo
 import (
 	"Backend/configs"
 	"Backend/dto"
+	"Backend/models"
 	"database/sql"
 	"fmt"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -46,6 +48,19 @@ func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (
 		return false, err
 	}
 	return true, nil
+}
+
+func (rp *Repo) InsertNewSymbolDataMongoDB(ctx *gin.Context, data *dto.DataPerSymbol) error {
+	c := ctx.Request.Context()
+	if _, err := rp.symbolCollection.InsertOne(c, models.Symbol{
+		Id:            primitive.NewObjectID(),
+		Name:          data.MetaData.Symbol,
+		LastRefreshed: time.Time(data.MetaData.LastRefreshed),
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, data *dto.DataPerSymbol) error {
