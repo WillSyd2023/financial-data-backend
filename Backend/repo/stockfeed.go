@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"Backend/configs"
 	"Backend/dto"
 	"database/sql"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type RepoItf interface {
@@ -18,12 +20,14 @@ type RepoItf interface {
 }
 
 type Repo struct {
-	db *sql.DB
+	db               *sql.DB
+	symbolCollection *mongo.Collection
 }
 
 func NewRepo(db *sql.DB) *Repo {
 	return &Repo{
-		db: db,
+		db:               db,
+		symbolCollection: configs.GetCollection(configs.DB, "symbols"),
 	}
 }
 
