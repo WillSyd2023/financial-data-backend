@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -32,15 +33,15 @@ func NewRepo(db *sql.DB) *Repo {
 }
 
 func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (bool, error) {
-	var exists bool
-	err := rp.db.QueryRowContext(
-		ctx,
-		"SELECT EXISTS(SELECT 1 FROM symbols WHERE symbol = $1)",
-		req.Symbol).Scan(&exists)
+	filter := bson.M{"symbol": req.Symbol}
+	err := rp.symbolCollection.FindOne(ctx, filter).Err()
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
 		return false, err
 	}
-	return exists, nil
+	return true, nil
 }
 
 func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, data *dto.DataPerSymbol) error {
