@@ -3,8 +3,10 @@ package middleware
 import (
 	"Backend/constant"
 	"Backend/dto"
+	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -67,5 +69,14 @@ func (m *Middleware) Error() gin.HandlerFunc {
 			Success: false,
 			Error:   err.Error(),
 		})
+	}
+}
+
+func (m *Middleware) Timeout(duration time.Duration) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), duration)
+		defer cancel()
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
 	}
 }
