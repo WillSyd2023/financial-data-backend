@@ -11,3 +11,7 @@ type Symbol struct {
 	Name          string             `bson:"name"`
 	LastRefreshed time.Time          `bson:"last_refreshed"`
 }
+
+type DailyOHLCV struct {
+	Id primitive.ObjectID `bson:"_id,omitempty"`
+}
