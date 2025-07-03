@@ -33,6 +33,6 @@ var DB *mongo.Client = ConnectDB()
 
 // getting database collections
 func GetCollection(client *mongo.Client, collectionName string) *mongo.Collection {
-	collection := client.Database("stockFeed").Collection(collectionName)
+	collection := client.Database("StockFeedDatabase").Collection(collectionName)
 	return collection
 }

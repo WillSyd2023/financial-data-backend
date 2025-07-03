@@ -50,7 +50,8 @@ func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (
 	return true, nil
 }
 
-func (rp *Repo) InsertNewSymbolDataMongoDB(ctx *gin.Context, data *dto.DataPerSymbol) error {
+func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, data *dto.DataPerSymbol) error {
+	// Insert new symbol and last-refreshed date
 	c := ctx.Request.Context()
 	if _, err := rp.symbolCollection.InsertOne(c, models.Symbol{
 		Id:            primitive.NewObjectID(),
@@ -60,10 +61,41 @@ func (rp *Repo) InsertNewSymbolDataMongoDB(ctx *gin.Context, data *dto.DataPerSy
 		return err
 	}
 
-	return nil
+	// Insert time-series data
+	timeSeries := make([]any, len(data.TimeSeries))
+	for i, ohlcv := range data.TimeSeries {
+		openPrice, err := primitive.ParseDecimal128(ohlcv.OHLC["open"].String())
+		if err != nil {
+			return err
+		}
+		highPrice, err := primitive.ParseDecimal128(ohlcv.OHLC["high"].String())
+		if err != nil {
+			return err
+		}
+		lowPrice, err := primitive.ParseDecimal128(ohlcv.OHLC["low"].String())
+		if err != nil {
+			return err
+		}
+		closePrice, err := primitive.ParseDecimal128(ohlcv.OHLC["close"].String())
+		if err != nil {
+			return err
+		}
+		timeSeries[i] = models.DailyOHLCV{
+			Date:       time.Time(ohlcv.Day),
+			Ticker:     data.MetaData.Symbol,
+			OpenPrice:  openPrice,
+			HighPrice:  highPrice,
+			LowPrice:   lowPrice,
+			ClosePrice: closePrice,
+			Volume:     int64(ohlcv.Volume),
+		}
+	}
+
+	_, err := rp.ohlcvCollection.InsertMany(ctx, timeSeries)
+	return err
 }
 
-func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, data *dto.DataPerSymbol) error {
+func (rp *Repo) InsertNewSymbolDataPostgres(ctx *gin.Context, data *dto.DataPerSymbol) error {
 	// Insert new symbol and last-refreshed data
 	var id int
 	err := rp.db.QueryRowContext(
