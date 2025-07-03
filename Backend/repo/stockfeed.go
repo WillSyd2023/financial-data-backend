@@ -5,7 +5,6 @@ import (
 	"Backend/dto"
 	"Backend/models"
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -51,8 +50,9 @@ func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (
 }
 
 func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, data *dto.DataPerSymbol) error {
-	// Insert new symbol and last-refreshed date
 	c := ctx.Request.Context()
+
+	// Insert new symbol and last-refreshed date
 	if _, err := rp.symbolCollection.InsertOne(c, models.Symbol{
 		Id:            primitive.NewObjectID(),
 		Name:          data.MetaData.Symbol,
@@ -95,58 +95,12 @@ func (rp *Repo) InsertNewSymbolData(ctx *gin.Context, data *dto.DataPerSymbol) e
 	return err
 }
 
-func (rp *Repo) InsertNewSymbolDataPostgres(ctx *gin.Context, data *dto.DataPerSymbol) error {
-	// Insert new symbol and last-refreshed data
-	var id int
-	err := rp.db.QueryRowContext(
-		ctx,
-		"INSERT INTO symbols (symbol, last_refreshed) VALUES ($1, $2) RETURNING symbol_id",
-		data.MetaData.Symbol,
-		time.Time(data.MetaData.LastRefreshed).Format(time.RFC3339),
-	).Scan(&id)
-	if err != nil {
+func (rp *Repo) DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) error {
+	c := ctx.Request.Context()
+	if _, err := rp.symbolCollection.DeleteOne(c, bson.M{"name": bson.M{"$eq": req.Symbol}}); err != nil {
 		return err
 	}
-
-	// Data to insert and numbering on SQL code
-	timeSeries := make([]any, 0)
-	pos := 1
-	query := "INSERT INTO ohlcv_per_day " +
-		"(record_day, open_price, high_price, low_price, close_price, volume, symbol_id) " +
-		"VALUES "
-	for i, ohlcv := range data.TimeSeries {
-		// Comma for SQL syntax
-		if i != 0 {
-			query += ", "
-		}
-
-		// Numbering for SQL code
-		query += fmt.Sprintf(
-			"($%d, $%d, $%d, $%d, $%d, $%d, $%d)",
-			pos, pos+1, pos+2, pos+3, pos+4, pos+5, pos+6)
-		pos += 7
-
-		// Data corresponding to numbering
-		timeSeries = append(timeSeries,
-			time.Time(ohlcv.Day).Format(time.RFC3339),
-			ohlcv.OHLC["open"], ohlcv.OHLC["high"], ohlcv.OHLC["low"], ohlcv.OHLC["close"],
-			ohlcv.Volume, id)
-	}
-
-	// Insert data
-	_, err = rp.db.ExecContext(ctx, query, timeSeries...)
-	return err
-}
-
-func (rp *Repo) DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) error {
-	res, err := rp.db.ExecContext(ctx,
-		"DELETE FROM symbols WHERE symbol=$1", req.Symbol)
-	if err == nil {
-		count, err := res.RowsAffected()
-		if err == nil && count > 0 {
-			return nil
-		}
-	}
+	_, err := rp.ohlcvCollection.DeleteMany(c, bson.M{"ticker": bson.M{"$eq": req.Symbol}})
 	return err
 }
 
