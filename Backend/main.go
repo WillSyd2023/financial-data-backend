@@ -2,7 +2,6 @@ package main
 
 import (
 	"Backend/configs"
-	"Backend/db"
 	"Backend/handler"
 	"Backend/middleware"
 	"Backend/repo"
@@ -18,14 +17,7 @@ import (
 )
 
 func main() {
-	// Setup database
-	db, err := db.InitDB()
-	if err != nil {
-		log.Fatalf("error connect DB: %s", err)
-	}
-	defer db.Close()
-
-	// MongoDB
+	// Setup MongoDB database
 	configs.ConnectDB()
 
 	// Setup server and middlewares
@@ -35,7 +27,7 @@ func main() {
 	r.Use(middleware.Error())
 
 	// Setup app (in layers)
-	rp := repo.NewRepo(db)
+	rp := repo.NewRepo()
 	uc := usecase.NewUsecase(rp, util.NewHttpClient())
 	hd := handler.NewHandler(uc)
 

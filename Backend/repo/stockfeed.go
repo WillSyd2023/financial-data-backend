@@ -4,7 +4,6 @@ import (
 	"Backend/configs"
 	"Backend/dto"
 	"Backend/models"
-	"database/sql"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type RepoItf interface {
@@ -22,14 +22,12 @@ type RepoItf interface {
 }
 
 type Repo struct {
-	db               *sql.DB
 	symbolCollection *mongo.Collection
 	ohlcvCollection  *mongo.Collection
 }
 
-func NewRepo(db *sql.DB) *Repo {
+func NewRepo() *Repo {
 	return &Repo{
-		db:               db,
 		symbolCollection: configs.GetCollection(configs.DB, "symbols"),
 		ohlcvCollection:  configs.GetCollection(configs.DB, "daily_ohlcv"),
 	}
@@ -105,52 +103,75 @@ func (rp *Repo) DeleteSymbol(ctx *gin.Context, req *dto.DeleteSymbolReq) error {
 }
 
 func (rp *Repo) StoredData(ctx *gin.Context) ([]dto.DataPerSymbol, error) {
-	query := "SELECT " +
-		"symbol, last_refreshed, record_day, open_price, high_price, low_price, close_price, volume " +
-		"FROM symbols INNER JOIN ohlcv_per_day ON symbols.symbol_id = ohlcv_per_day.symbol_id " +
-		"ORDER BY symbol, record_day ASC"
-	rows, err := rp.db.QueryContext(ctx, query)
+	c := ctx.Request.Context()
+
+	results, err := rp.symbolCollection.Find(c, bson.D{}, options.Find().SetSort(
+		bson.D{{Key: "name", Value: 1}}))
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	data := make([]dto.DataPerSymbol, 0)
-	ix := -1
-	for rows.Next() {
-		meta := dto.SymbolDataMeta{}
-		ohlcv := dto.DailyOHLCVRes{}
-		var open, high, low, close decimal.Decimal
-		if err := rows.Scan(
-			&meta.Symbol, &meta.LastRefreshed, &ohlcv.Day,
-			&open, &high, &low, &close,
-			&ohlcv.Volume,
-		); err != nil {
+	defer results.Close(c)
+	for results.Next(c) {
+		var symbol models.Symbol
+		if err = results.Decode(&symbol); err != nil {
 			return nil, err
 		}
-		ohlcv.OHLC = map[string]decimal.Decimal{
-			"open":  open,
-			"high":  high,
-			"low":   low,
-			"close": close,
+		data = append(data, dto.DataPerSymbol{
+			MetaData: &dto.SymbolDataMeta{
+				Symbol:        symbol.Name,
+				LastRefreshed: dto.DateOnly(symbol.LastRefreshed)},
+		})
+	}
+
+	results, err = rp.ohlcvCollection.Find(c, bson.D{}, options.Find().SetSort(
+		bson.D{{Key: "ticker", Value: 1}, {Key: "date", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+
+	ix := 0
+	defer results.Close(c)
+	for results.Next(c) {
+		var ohlcv models.DailyOHLCV
+		if err = results.Decode(&ohlcv); err != nil {
+			return nil, err
 		}
 
-		if len(data) == 0 ||
-			data[ix].MetaData.Symbol != meta.Symbol {
-			ix++
-			data = append(data, dto.DataPerSymbol{
-				MetaData:   &meta,
-				TimeSeries: []dto.DailyOHLCVRes{ohlcv},
-			})
-		} else {
-			data[ix].TimeSeries = append(
-				data[ix].TimeSeries,
-				ohlcv,
-			)
+		open, err := decimal.NewFromString(ohlcv.OpenPrice.String())
+		if err != nil {
+			return nil, err
 		}
-	}
-	if err = rows.Err(); err != nil {
-		return nil, err
+		high, err := decimal.NewFromString(ohlcv.HighPrice.String())
+		if err != nil {
+			return nil, err
+		}
+		low, err := decimal.NewFromString(ohlcv.LowPrice.String())
+		if err != nil {
+			return nil, err
+		}
+		close, err := decimal.NewFromString(ohlcv.ClosePrice.String())
+		if err != nil {
+			return nil, err
+		}
+
+		res := dto.DailyOHLCVRes{
+			Day: dto.DateOnly(ohlcv.Date),
+			OHLC: map[string]decimal.Decimal{
+				"open":  open,
+				"high":  high,
+				"low":   low,
+				"close": close,
+			},
+			Volume: int(ohlcv.Volume),
+		}
+
+		if data[ix].MetaData.Symbol != ohlcv.Ticker {
+			ix++
+		}
+
+		data[ix].TimeSeries = append(data[ix].TimeSeries, res)
 	}
 
 	// Remember to figure out number of data for each stock
