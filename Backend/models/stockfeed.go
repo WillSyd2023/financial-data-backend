@@ -13,5 +13,12 @@ type Symbol struct {
 }
 
 type DailyOHLCV struct {
-	Id primitive.ObjectID `bson:"_id,omitempty"`
+	Id         primitive.ObjectID   `bson:"_id,omitempty"`
+	Date       time.Time            `bson:"date"`
+	Ticker     string               `bson:"ticker"`
+	OpenPrice  primitive.Decimal128 `bson:"open_price"`
+	HighPrice  primitive.Decimal128 `bson:"high_price"`
+	LowPrice   primitive.Decimal128 `bson:"low_price"`
+	ClosePrice primitive.Decimal128 `bson:"close_price"`
+	Volume     int64                `bson:"volume"`
 }
