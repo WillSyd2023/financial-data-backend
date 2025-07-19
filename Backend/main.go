@@ -1,0 +1,55 @@
+package main
+
+import (
+	"Backend/configs"
+	"Backend/handler"
+	"Backend/middleware"
+	"Backend/repo"
+	"Backend/usecase"
+	"Backend/util"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	_ "github.com/jackc/pgx/v5/stdlib"
+)
+
+func main() {
+	// Setup MongoDB database
+	configs.ConnectDB()
+
+	// Setup server and middlewares
+	r := gin.Default()
+	middleware := middleware.NewMiddleware()
+	r.Use(middleware.Timeout(10 * time.Second))
+	r.Use(middleware.Error())
+
+	// Setup app (in layers)
+	rp := repo.NewRepo()
+	uc := usecase.NewUsecase(rp, util.NewHttpClient())
+	hd := handler.NewHandler(uc)
+
+	// Get symbols
+	r.GET("/symbols", hd.GetSymbols)
+
+	// Collect and return stock data
+	r.POST("/data/:symbol", hd.CollectSymbol)
+
+	// Delete a recorded symbol and its data
+	r.DELETE("/data/:symbol", hd.DeleteSymbol)
+
+	// Get stored data
+	// Used when opening frontend
+	r.GET("/data", hd.StoredData)
+
+	// Run server
+	srv := &http.Server{
+		Addr:    os.Getenv("SERVER_PORT"),
+		Handler: r.Handler(),
+	}
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("listen: %s\n", err)
+	}
+}
