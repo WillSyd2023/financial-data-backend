@@ -23,4 +23,12 @@ A backend service for stock time-series data from the Alpha Vantage API. Designe
 * mongodb: Uses MongoDB Atlas for storage; includes timeout middleware
 * postgresql: Uses PostgreSQL; excludes timeout middleware
 * Each branch contains 4 functional endpoints and is independently usable
+### Testing
+`go test -cover ./...`
 
+Current coverage:
+
+* `handler`: 66.0% of statements
+* `middleware`: 76.0% of statements
+* `repo`: 0.0% of statements
+* `usecase`: 74.3% of statements
