@@ -36,7 +36,7 @@ func NewRepo() *Repo {
 func (rp *Repo) CheckSymbolExists(ctx *gin.Context, req *dto.CollectSymbolReq) (bool, error) {
 	c := ctx.Request.Context()
 
-	filter := bson.M{"symbol": req.Symbol}
+	filter := bson.M{"name": req.Symbol}
 	err := rp.symbolCollection.FindOne(c, filter).Err()
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
