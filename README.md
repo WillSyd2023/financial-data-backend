@@ -23,8 +23,15 @@ A backend service for stock time-series data from the Alpha Vantage API. Designe
 * mongodb: Uses MongoDB Atlas for storage; includes timeout middleware
 * postgresql: Uses PostgreSQL; excludes timeout middleware
 * Each branch contains 4 functional endpoints and is independently usable
+### Running
+
+Before running, go to `configs/env.go` and make sure the argument for `godotenv.Load` is nothing.
+
 ### Testing
-`go test -cover ./...`
+
+Before testing, go to `configs/env.go` and make sure the argument for `godotenv.Load` `"../.env"`.
+
+Then, run tests with `go test -cover ./...`.
 
 Current coverage:
 
